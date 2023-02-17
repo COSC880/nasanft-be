@@ -2,14 +2,14 @@ var express = require("express");
 const validate = require("../validate");
 var router = express.Router();
 
-router.post("/refresh", function (req, res) {
+router.post('/refresh', function (req, res) {
   validate.verifyRequest(req, res, (valRes) => {
     const accessToken = validate.createAccessToken(valRes.username);
     res.send(JSON.stringify({ accessToken: "Bearer " + accessToken }));
   });
 });
 
-router.get("/login", function (req, res) {
+router.post('/login', function (req, res) {
   var username = "user1"; //req.body.username.toLowerCase();
   //TODO: Add username and password verification here
   const accessToken = validate.createAccessToken(username);
