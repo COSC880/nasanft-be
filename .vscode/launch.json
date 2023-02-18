@@ -14,7 +14,7 @@
       "type": "chrome",
       "request": "launch",
       "name": "Launch Chrome against localhost",
-      "url": "http://localhost:${input:port}",
+      "url": "http://localhost:3000/api",
       "webRoot": "${workspaceFolder}"
     }
   ],
@@ -23,14 +23,6 @@
       "name": "Express/Chrome",
       "configurations": ["Run npm start", "Launch Chrome against localhost"],
       "stopAll": true
-    }
-  ],
-  "inputs": [
-    {
-      "id": "port",
-      "description": "Port Express Server is running on",
-      "default": "3000",
-      "type": "promptString"
     }
   ]
 }
