@@ -5,25 +5,28 @@ var router = express.Router();
 router.post('/refresh', function (req, res) {
   validate.verifyRequest(req, res, (valRes) => {
     const accessToken = validate.createAccessToken(valRes.username);
-    res.send(JSON.stringify({ accessToken: "Bearer " + accessToken }));
+    return res.json({ accessToken: "Bearer " + accessToken });
   });
 });
 
 router.post('/login', function (req, res) {
-  var username = "user1"; //req.body.username.toLowerCase();
+  if (!validate.verifyPostParams(req, res, ["username", "password"]))
+  {
+    return;
+  }
+  var username = req.body.username;
+  var password = req.body.password;
   //TODO: Add username and password verification here
   const accessToken = validate.createAccessToken(username);
   const refreshToken = validate.createRefreshToken(username);
   if (accessToken && refreshToken) {
-    res.send(
-      JSON.stringify({
-        text: "Login Successful",
-        accessToken: "Bearer " + accessToken,
-        refreshToken: "Bearer " + refreshToken,
-      })
-    );
+    return res.json({
+      text: "Login Successful",
+      accessToken: "Bearer " + accessToken,
+      refreshToken: "Bearer " + refreshToken,
+    });
   } else {
-    res.send("Login Failed");
+    return res.json({text: "Login Failed"});
   }
 });
 
