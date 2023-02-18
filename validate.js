@@ -20,8 +20,26 @@ async function verifyRequest(req, res, callback) {
       throw new Error("Invalid decoded token");
     }
   } catch (err) {
-    res.status(403).send(err.message);
+    res.status(403).json({text: err.message});
   }
+}
+
+function verifyPostParams(req, res, requiredParams)
+{
+  var invalidParameter;
+  requiredParams.forEach(function(param){
+    if (!req.body[param])
+    {
+      invalidParameter = param;
+    }
+  });
+
+  if (invalidParameter)
+  {
+    res.status(400).json({text: "Missing required parameter " + invalidParameter});
+    return false;
+  }
+  return true;
 }
 
 function createToken(username, expiresIn) {
@@ -43,4 +61,4 @@ function getToken(req) {
   }
 }
 
-module.exports = { createAccessToken, createRefreshToken, verifyRequest };
+module.exports = { createAccessToken, createRefreshToken, verifyRequest, verifyPostParams };
