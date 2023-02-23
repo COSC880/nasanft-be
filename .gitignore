@@ -1,6 +1,9 @@
-#Node
+#typescript
 **/node_modules/
+**/dist/
 
 #.env
 **/.env
-**/.env.test
+
+#jest
+**/coverage

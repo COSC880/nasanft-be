@@ -1,13 +1,16 @@
-require("dotenv").config();
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+import createError from 'http-errors';
+import express from 'express';
+import { ErrorRequestHandler } from 'express';
+import path from 'path';
+import cookieParser from 'cookie-parser';
+import logger from 'morgan';
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var tokenRouter = require('./routes/token');
+import indexRouter from './routes/index';
+import usersRouter from './routes/users';
+import tokenRouter from './routes/token';
+
+import dotenv from 'dotenv';
+dotenv.config();
 
 var app = express();
 
@@ -34,7 +37,7 @@ app.use(function(req, res, next) {
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+const errorHandler: ErrorRequestHandler = function(err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -42,6 +45,7 @@ app.use(function(err, req, res, next) {
   // render the error page
   res.status(err.status || 500);
   res.render('error');
-});
+};
+app.use(errorHandler);
 
-module.exports = app;
+export default app;
