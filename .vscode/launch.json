@@ -21,8 +21,9 @@
   "compounds": [
     {
       "name": "Express/Chrome",
+      "request": "launch",
       "configurations": ["Run npm start", "Launch Chrome against localhost"],
-      "stopAll": true
+      "stopAll": true,
     }
   ]
 }

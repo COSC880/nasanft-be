@@ -1,4 +1,4 @@
-var express = require('express');
+import express from 'express';
 var router = express.Router();
 
 router.put('/create', function (req, res, next) {
@@ -17,4 +17,4 @@ router.delete('/delete', function (req, res, next) {
   res.json({text: "Delete the User here"});
 });
 
-module.exports = router;
+export default router;

@@ -1,9 +1,10 @@
-var express = require("express");
-const validate = require("../validate");
+import express from "express";
+import { JwtPayload } from "jsonwebtoken";
+import validate from "../validate";
 var router = express.Router();
 
 router.post('/refresh', function (req, res) {
-  validate.verifyRequest(req, res, (valRes) => {
+  validate.verifyRequest(req, res, (valRes: JwtPayload) => {
     const accessToken = validate.createAccessToken(valRes.username);
     return res.json({ accessToken: "Bearer " + accessToken });
   });
@@ -30,4 +31,4 @@ router.post('/login', function (req, res) {
   }
 });
 
-module.exports = router;
+export default router;
