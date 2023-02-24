@@ -15,6 +15,18 @@ describe("NasaFT", function () {
     expect(res.body).toHaveProperty('refreshToken');
 
     const refreshRes = await request(app).post("/api/token/refresh").set("x-auth-token", res.body.refreshToken);
+    expect(refreshRes.body).toHaveProperty('accessToken');
+  });
+  it("Should be able to get username from middleware that decoded token.", async () => {
+    const username = "EarthRockSunStarIRockStar"
+    const res = await request(app).post("/api/token/login").send({
+      username: username,
+      password: "FavoritePlaceIsSpace"
+    });
     expect(res.body).toHaveProperty('accessToken');
+    expect(res.body).toHaveProperty('refreshToken');
+
+    const userRes = await request(app).get("/api/users/read").set("x-auth-token", res.body.accessToken);
+    expect(userRes.body).toHaveProperty('username', username);
   });
 });

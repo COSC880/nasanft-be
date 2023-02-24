@@ -3,11 +3,9 @@ import { JwtPayload } from "jsonwebtoken";
 import validate from "../validate";
 const router = express.Router();
 
-router.post('/refresh', function (req, res) {
-  validate.verifyRequest(req, res, (valRes: JwtPayload) => {
-    const accessToken = validate.createAccessToken(valRes.username);
-    return res.json({ accessToken: "Bearer " + accessToken });
-  });
+router.post('/refresh', validate.verifyRequest, function (req, res) {
+  const accessToken = validate.createAccessToken(res.locals.username);
+  return res.json({ accessToken:  accessToken ? "Bearer " + accessToken : null });
 });
 
 router.post('/login', function (req, res) {
