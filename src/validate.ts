@@ -1,6 +1,6 @@
 import createHttpError from "http-errors";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 
 const accessTokenExpiresIn = "30m";
 const refreshTokenExpiresIn = "200d";
@@ -13,12 +13,14 @@ function createRefreshToken(username: String) {
   return createToken(username, refreshTokenExpiresIn);
 }
 
-async function verifyRequest(req: Request, res: Response, callback: (res: JwtPayload) => void) {
+async function verifyRequest(req: Request, res: Response, next: NextFunction) {
   try {
     var token = getToken(req)!;
     const tokenRes = jwt.verify(token, process.env.JWT_SECRET!);
-    if (tokenRes && (tokenRes as JwtPayload).username) {
-      callback((tokenRes as JwtPayload));
+    const username = (tokenRes as JwtPayload).username; 
+    if (username)  {
+      res.locals.username = (tokenRes as JwtPayload).username;
+      next();
     } else {
       throw new Error("Invalid decoded token");
     }
@@ -58,12 +60,12 @@ function createToken(username: String, expiresIn: string) {
 }
 
 function getToken(req: Request) {
-  try {
-    return req.header("x-auth-token")?.split(" ")[1];
-  } catch(err) {
-    console.log(err);
-    throw new Error("Invalid Token Provided");
+  const token = req.header("x-auth-token")?.split(" ")[1];
+  if (token)
+  {
+    return token;
   }
+  throw new Error("Invalid Token Provided");
 }
 
 export default { createAccessToken, createRefreshToken, verifyRequest, verifyPostParams };
