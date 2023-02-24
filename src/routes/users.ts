@@ -1,5 +1,5 @@
 import express from 'express';
-var router = express.Router();
+const router = express.Router();
 
 router.put('/create', function (req, res, next) {
   res.json({text: "Create the User here"});
