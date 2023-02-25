@@ -1,6 +1,6 @@
 import express from "express";
 import { JwtPayload } from "jsonwebtoken";
-import validate from "../validate";
+import validate from "../utils/validate";
 const router = express.Router();
 
 router.post('/refresh', validate.verifyRequest, function (req, res) {

@@ -1,5 +1,4 @@
-import { verify } from 'crypto';
-import validate from '../validate';
+import validate from '../utils/validate';
 import express from 'express';
 const router = express.Router();
 
