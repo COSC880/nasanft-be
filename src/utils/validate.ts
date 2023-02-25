@@ -5,11 +5,11 @@ import { Request, Response, NextFunction } from "express";
 const accessTokenExpiresIn = "30m";
 const refreshTokenExpiresIn = "200d";
 
-function createAccessToken(username: String) {
+function createAccessToken(username: String) : string | undefined {
   return createToken(username, accessTokenExpiresIn);
 }
 
-function createRefreshToken(username: String) {
+function createRefreshToken(username: String) : string | undefined {
   return createToken(username, refreshTokenExpiresIn);
 }
 
@@ -48,7 +48,7 @@ function verifyPostParams(req: Request, res: Response, requiredParams: string[])
   return true;
 }
 
-function createToken(username: String, expiresIn: string) {
+function createToken(username: String, expiresIn: string) : string | undefined {
   try {
     return jwt.sign({ username: username }, process.env.JWT_SECRET!, {
       expiresIn: expiresIn,
@@ -56,10 +56,10 @@ function createToken(username: String, expiresIn: string) {
   } catch (err) {
     console.error(err);
   }
-  return null;
+  return undefined;
 }
 
-function getToken(req: Request) {
+function getToken(req: Request) : string | undefined {
   const token = req.header("x-auth-token")?.split(" ")[1];
   if (token)
   {
