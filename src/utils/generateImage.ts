@@ -1,6 +1,6 @@
 import {createCanvas, loadImage} from "canvas";
 import path from "path";
-const IMAGES_DIR = path.join(__dirname, "..", "static", "images");
+const IMAGES_DIR = path.join(__dirname, "..", "images");
 const IMAGE_WIDTH = 500;
 const IMAGE_HEIGHT = 500;
 const EXTENSION = ".png";
