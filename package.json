@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "setup": "npm install && npm run generateTypes && npm run build",
-    "generateTypes": "mkdirp types && dotenv \"cross-var supabase gen types typescript --project-id \"%SUPABASE_PROJECT_ID%\" > types/dbTypes.ts\"",
+    "generateTypes": "mkdirp src/types && dotenv \"cross-var supabase gen types typescript --project-id \"%SUPABASE_PROJECT_ID%\" > src/types/dbTypes.ts\"",
     "prestart": "npm run build",
     "start": "dotenv \"cross-var node ./dist/%NODE_ENV%/bin/www\"",
-    "prebuild": "dotenv \"cross-var echo building in %NODE_ENV% mode\"",
+    "prebuild": "dotenv \"cross-var echo building in %NODE_ENV% mode && npm run generateTypes\"",
     "build": "dotenv \"cross-var tsc --build tsconfig.%NODE_ENV%.json\"",
     "postbuild": "dotenv \"cross-var copyfiles -u1 \"src/static/**\" \"dist/%NODE_ENV%\"\"",
     "test": "jest --coverage"
