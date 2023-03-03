@@ -10,7 +10,12 @@ on:
     branches: [ "main" ]
     
 env:
-  JWT_SECRET: "Shhh Its a Secret"
+  NODE_ENV: development
+  PORT: 3000
+  JWT_SECRET: ${{ secrets.GITHUB_TOKEN }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+  SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+  SUPABASE_PROJECT_ID: "egaldiqizaelreydwdfc"
 
 jobs:
   build:
