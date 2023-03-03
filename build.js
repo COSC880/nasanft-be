@@ -44,7 +44,7 @@ async function copyStaticFiles()
 function generateTypes()
 {
     fse.mkdirpSync("src/model", {recursive: true});
-    generateType("user_data", "Users");    
+    generateType("users_data", "Users");    
 }
 
 function generateType(schemaName, filename)
