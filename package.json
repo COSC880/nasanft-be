@@ -3,15 +3,25 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./dist/debug/bin/www",
     "prestart": "npm run build",
-    "build": "tsc",
-    "postbuild": "copyfiles -u1 \"src/static/**\" \"dist/debug\"",
-    "build-release": "tsc --build tsconfig.prod.json",
-    "postbuild-release": "copyfiles -u1 \"src/static/**\" \"dist/release\"",
+    "start": "dotenv cross-var node ./dist/%NODE_ENV%/bin/www",
+    "build": "node build.js",
     "test": "jest --coverage"
   },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.development.json"
+        }
+      ]
+    }
+  },
   "dependencies": {
+    "@supabase/supabase-js": "^2.10.0",
     "canvas": "^2.11.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
@@ -34,11 +44,14 @@
     "@types/pixelmatch": "^5.2.4",
     "@types/pngjs": "^6.0.1",
     "@types/supertest": "^2.0.12",
-    "copyfiles": "^2.4.1",
     "cross-env": "^7.0.3",
+    "cross-var": "^1.1.0",
+    "dotenv-cli": "^7.0.0",
+    "fs-extra": "^11.1.0",
     "jest": "^29.4.3",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
+    "supabase": "^1.41.0",
     "supertest": "^6.3.3",
     "ts-jest": "^29.0.5",
     "ts-node": "^10.9.1",

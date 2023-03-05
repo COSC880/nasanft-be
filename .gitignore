@@ -1,6 +1,7 @@
 #typescript
 **/node_modules/
 **/dist/
+**/model
 
 #.env
 **/.env

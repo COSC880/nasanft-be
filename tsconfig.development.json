@@ -7,7 +7,7 @@
     "module": "commonjs",                                /* Specify what module code is generated. */
 
     /* Emit */
-    "outDir": "dist/debug",
+    "outDir": "dist/development",
     "sourceMap": true,                                /* Create source map files for emitted JavaScript files. */
     
     /* Interop Constraints */
@@ -19,5 +19,6 @@
   },
   "exclude": [
     "**/tests/*",
+    "build.js"
   ]
 }
