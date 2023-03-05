@@ -1,31 +1,24 @@
 const execSync = require("child_process").execSync;
 const fse = require("fs-extra");
-const dotenv = require('dotenv').config();
-
-const usage = "Usage: prebuild || postbuild || --help";
+require('dotenv').config();
 
 main();
 
 function main()
 {
-    if (process.argv.length < 3)
-    {
-        console.log(usage);
-        throw new Error("Invalid number of arguments");
-    }
-    else if(process.argv[2].toLowerCase() == "prebuild")
-    {
-        preBuild()
-    }
-    else
-    {
-        postBuild();
-    }
+    preBuild();
+    build();
+    postBuild();
 }
 
 function preBuild()
 {
     generateTypes();
+}
+
+function build()
+{
+    execSync("tsc --build \"tsconfig." + process.env.NODE_ENV + ".json\"");
 }
 
 function postBuild()
@@ -49,6 +42,6 @@ function generateTypes()
 
 function generateType(schemaName, filename)
 {
-    execSync("npx dotenv \"cross-var supabase gen types typescript --project-id \"%SUPABASE_PROJECT_ID%\" --schema \"" 
-    + schemaName + "\" > \"src/model/" + filename + ".ts\"\"");
+    execSync("npx supabase gen types typescript --project-id \"" + process.env.SUPABASE_PROJECT_ID + "\" --schema \""
+     + schemaName + "\" > \"src/model/" + filename + ".ts\"");
 }
