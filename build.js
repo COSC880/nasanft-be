@@ -38,6 +38,7 @@ function generateTypes()
 {
     fse.mkdirpSync("src/model", {recursive: true});
     generateType("users_data", "Users");    
+    generateType("quiz_information", "Questions");
 }
 
 function generateType(schemaName, filename)

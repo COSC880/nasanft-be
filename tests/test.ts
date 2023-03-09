@@ -6,6 +6,7 @@ import path from "path";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import { Database as User } from "../src/model/Users";
+import { Database as Questions } from "../src/model/Questions";
 
 describe("NasaFT", function () {
   it("Shouldnt be able to get access token without refresh token.", async () => {
@@ -90,6 +91,42 @@ describe("NasaFT", function () {
     const res = await request(app).delete("/api/users/").send(user)
       .set(authenication.field, authenication.value!);
     expect(res.status).toEqual(204);
+  });
+  it("Should be able to get a random question", async () => {
+    const authenication = await getAuthenticationHeader();
+    
+    const res = await request(app).get("/api/questions/")
+      .set(authenication.field, authenication.value!);
+    expect(res.status).toEqual(200);
+
+    const id = res.body.question_id;
+
+    const res2 = await request(app).get("/api/questions/")
+    .set(authenication.field, authenication.value!);
+    expect(res2.status).toEqual(200);
+    expect(res2.body.question_id).not.toEqual(id);
+  });
+  it("Questions should have the right answers returned", async () => {
+    const authenication = await getAuthenticationHeader();
+    
+    const res = await request(app).get("/api/questions/")
+      .set(authenication.field, authenication.value!);
+    expect(res.status).toEqual(200);
+    res.body.answers.forEach((answer: Questions["quiz_information"]["Tables"]["quiz_answers"]["Row"]) => {
+      expect(answer.question_id).toEqual(res.body.question_id);
+    });
+  });
+  it("Should be able to get specific question", async () => {
+    const authenication = await getAuthenticationHeader();
+    const question_id = "043d9ed2-d7e7-4a6f-bfee-2e30c9b9e8fc"
+
+    const res = await request(app).get("/api/questions/" + question_id)
+      .set(authenication.field, authenication.value!);
+    expect(res.status).toEqual(200);
+    expect(res.body.question_id).toEqual(question_id);
+    res.body.answers.forEach((answer: Questions["quiz_information"]["Tables"]["quiz_answers"]["Row"]) => {
+      expect(answer.question_id).toEqual(res.body.question_id);
+    });
   });
 });
 

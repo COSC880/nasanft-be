@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database as Users } from "./model/Users";
+import { Database as Questions } from "./model/Questions";
 
 
 function getConnection<T>(schema: "public" extends keyof T ? keyof T & "public" : string & keyof T)
@@ -12,5 +13,6 @@ function getConnection<T>(schema: "public" extends keyof T ? keyof T & "public" 
 }
 
 export const DBCONNECTIONS = {
-    users: getConnection<Users>("users_data")
+    users: getConnection<Users>("users_data"),
+    questions: getConnection<Questions>("quiz_information")
 };
