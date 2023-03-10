@@ -11,6 +11,7 @@ dotenv.config();
 import indexRouter from './routes/index';
 import usersRouter from './routes/users';
 import tokenRouter from './routes/token';
+import quizzesRouter from "./routes/quizzes";
 
 const app = express();
 
@@ -28,6 +29,7 @@ const apiRouter = express.Router();
 apiRouter.use('/', indexRouter);
 apiRouter.use('/users', usersRouter);
 apiRouter.use('/token', tokenRouter);
+apiRouter.use('/quizzes', quizzesRouter);
 
 app.use('/api', apiRouter);
 

@@ -1,39 +1,36 @@
 import validate from '../utils/validate';
 import express from 'express';
-import { DBCONNECTIONS } from '../config';
-import { Database as User } from '../model/Users';
+import * as UsersDb from '../model/UsersDb';
 const router = express.Router();
-
-const dbConnection = DBCONNECTIONS.users;
 
 //Insert New User
 router.post('/', validate.verifyRequest, async function (req, res, next) {
-  const result = await dbConnection.from("user_data").insert(req.body);
-  res.status(result.status).json({text: result.error ? result.error.message : result.statusText});
+  const {error, status, statusText} = await UsersDb.insertUser(req.body);
+  res.status(status).json({text: error ? error.message : statusText});
 });
 
 //Get Own User
 router.get('/', validate.verifyRequest, async function (req, res, next) {
-  const result = await dbConnection.from("user_data").select().filter("user_name", "eq", res.locals.username).single();
-  res.status(result.status).json(result.error ? {text: result.error.message} : result.data);
+  const {error, data, status} = await UsersDb.getUser(res.locals.username);
+  res.status(status).json(error ? {text: error.message} : data);
 });
 
 //Get Other User
 router.get('/:user_name', validate.verifyRequest, async function (req, res, next) {
-  const result = await dbConnection.from("user_data").select().filter("user_name", "eq", req.params.user_name).single();
-  res.status(result.status).json(result.error ? {text: result.error.message} : result.data);
+  const {error, data, status} = await UsersDb.getUser(req.params.user_name);
+  res.status(status).json(error ? {text: error.message} : data);
 });
 
 //Update User
 router.put('/', validate.verifyRequest, async function (req, res, next) {
-  const result = await dbConnection.from("user_data").update(req.body.user).eq("user_name", req.body.user_name).select().single();
-  res.status(result.status).json(result.error ? {text: result.error.message} : result.data);
+  const {error, data, status} = await UsersDb.updateUser(req.body.user_name, req.body.user);
+  res.status(status).json(error ? {text: error.message} : data);
 });
 
 //Delete User
 router.delete('/', validate.verifyRequest, async function (req, res, next) {
-  const result = await dbConnection.from("user_data").delete().filter("user_name", "eq", req.body.user_name);
-  res.status(result.status).json({text: result.error ? result.error.message : result.statusText});
+  const {error, status, statusText} = await UsersDb.deleteUser(req.body.user_name);
+  res.status(status).json({text: error ? error.message : statusText});
 });
 
 export default router;
