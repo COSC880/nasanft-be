@@ -5,8 +5,8 @@ import fs from "fs";
 import path from "path";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
-import { Database as User } from "../src/model/Users";
-import { Database as Questions } from "../src/model/Questions";
+import { InsertUser, UpdateUser } from "../src/model/UsersDb";
+import { Question, Answer, stopSetRandomQuizJob } from "../src/model/QuizzesDb";
 
 describe("NasaFT", function () {
   it("Shouldnt be able to get access token without refresh token.", async () => {
@@ -49,7 +49,7 @@ describe("NasaFT", function () {
   });
   it("Inserting user with required data should insert data", async () => {
     const authenication = await getAuthenticationHeader();
-    const user: User['users_data']['Tables']['user_data']['Insert'] = {
+    const user: InsertUser = {
       user_name: "SpaceXCellAnt",
       public_address: "0x0000000000000000000000000000000000000000"
     };
@@ -67,7 +67,7 @@ describe("NasaFT", function () {
     const authenication = await getAuthenticationHeader();
     const time = "22:56:00+00";
 
-    const user: User['users_data']['Tables']['user_data']['Update'] = {
+    const user: UpdateUser = {
       last_completed: time
     };
     
@@ -84,7 +84,7 @@ describe("NasaFT", function () {
   });
   it("Should be able to delete user", async () => {
     const authenication = await getAuthenticationHeader();
-    const user: User['users_data']['Tables']['user_data']['Update'] = {
+    const user: UpdateUser = {
       user_name: "SpaceXCellAnt"
     };
     
@@ -92,41 +92,54 @@ describe("NasaFT", function () {
       .set(authenication.field, authenication.value!);
     expect(res.status).toEqual(204);
   });
-  it("Should be able to get a random question", async () => {
+  it("Should be able to get a random quiz", async () => {
     const authenication = await getAuthenticationHeader();
     
-    const res = await request(app).get("/api/questions/")
+    const res = await request(app).get("/api/quizzes/")
       .set(authenication.field, authenication.value!);
     expect(res.status).toEqual(200);
 
-    const id = res.body.question_id;
+    const id = res.body.quiz_id;
 
-    const res2 = await request(app).get("/api/questions/")
-    .set(authenication.field, authenication.value!);
+    //Force quiz refresh
+    const res2 = await request(app).put("/api/quizzes/")
+      .set(authenication.field, authenication.value!);
     expect(res2.status).toEqual(200);
-    expect(res2.body.question_id).not.toEqual(id);
+
+    const res3 = await request(app).get("/api/quizzes/")
+    .set(authenication.field, authenication.value!);
+    expect(res3.status).toEqual(200);
+    expect(res3.body.quiz_id).not.toEqual(id);
   });
   it("Questions should have the right answers returned", async () => {
     const authenication = await getAuthenticationHeader();
     
-    const res = await request(app).get("/api/questions/")
+    const res = await request(app).get("/api/quizzes/")
       .set(authenication.field, authenication.value!);
     expect(res.status).toEqual(200);
-    res.body.answers.forEach((answer: Questions["quiz_information"]["Tables"]["quiz_answers"]["Row"]) => {
-      expect(answer.question_id).toEqual(res.body.question_id);
+    res.body.questions.forEach((question: Question) => {
+      question?.answers.forEach((answer: Answer) => {
+        expect(answer?.question_id).toEqual(question.question_id);
+      });
     });
   });
-  it("Should be able to get specific question", async () => {
+  it("Should be able to get specific quiz", async () => {
     const authenication = await getAuthenticationHeader();
-    const question_id = "043d9ed2-d7e7-4a6f-bfee-2e30c9b9e8fc"
+    const quiz_id  = "0e16e3ff-e7c9-42b4-9984-b4c005443194"
 
-    const res = await request(app).get("/api/questions/" + question_id)
+    const res = await request(app).get("/api/quizzes/" + quiz_id)
       .set(authenication.field, authenication.value!);
     expect(res.status).toEqual(200);
-    expect(res.body.question_id).toEqual(question_id);
-    res.body.answers.forEach((answer: Questions["quiz_information"]["Tables"]["quiz_answers"]["Row"]) => {
-      expect(answer.question_id).toEqual(res.body.question_id);
+    expect(res.body.quiz_id).toEqual(quiz_id);
+    res.body.questions.forEach((question: Question) => {
+      expect(question?.quiz_id).toEqual(quiz_id);
+      question?.answers.forEach((answer: Answer) => {
+        expect(answer?.quiz_id).toEqual(quiz_id);
+      });
     });
+  });
+  it("Should be able to stop cron job", async () => {
+    expect(stopSetRandomQuizJob).not.toThrowError();
   });
 });
 

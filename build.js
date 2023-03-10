@@ -1,6 +1,7 @@
 const execSync = require("child_process").execSync;
 const fse = require("fs-extra");
 require('dotenv').config();
+const generatedSchemasDir = "src/schemas"
 
 main();
 
@@ -36,13 +37,13 @@ async function copyStaticFiles()
 //GENERATE TYPES
 function generateTypes()
 {
-    fse.mkdirpSync("src/model", {recursive: true});
+    fse.mkdirpSync(generatedSchemasDir, {recursive: true});
     generateType("users_data", "Users");    
-    generateType("quiz_information", "Questions");
+    generateType("quiz_information", "Quizzes");
 }
 
 function generateType(schemaName, filename)
 {
     execSync("npx supabase gen types typescript --project-id \"" + process.env.SUPABASE_PROJECT_ID + "\" --schema \""
-     + schemaName + "\" > \"src/model/" + filename + ".ts\"");
+     + schemaName + "\" > \"" + generatedSchemasDir + "/" + filename + ".ts\"");
 }
