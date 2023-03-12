@@ -1,23 +1,20 @@
-import {createCanvas, loadImage} from "canvas";
+import {CanvasRenderingContext2D, createCanvas, loadImage} from "canvas";
 import path from "path";
 const IMAGES_DIR = path.join(__dirname, "..", "images");
 const IMAGE_WIDTH = 500;
 const IMAGE_HEIGHT = 500;
 const EXTENSION = ".png";
 
-async function generateImageFromAttributes(background: String, attributes: Map<String, String>) : Promise<Buffer | undefined>
+export default async function generateImageFromAttributes(background: string, velocity: string, close_to_earth : string, size: string)
 {
     try
     {
         const canvas = createCanvas(IMAGE_WIDTH, IMAGE_HEIGHT);
         const context = canvas.getContext('2d');
-        const backgroundImage = await loadImage(path.join(IMAGES_DIR, "background", background + EXTENSION));
-        context.drawImage(backgroundImage, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-        for (let [attribute, value] of attributes.entries())
-        {
-            const attributeImage = await loadImage(path.join(IMAGES_DIR, attribute + "/" + value + EXTENSION));
-            context.drawImage(attributeImage, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-        }
+        await addImage(context, getImageDir("background", background));
+        await addImage(context, getImageDir("velocity", velocity));
+        await addImage(context, getImageDir("close_to_earth", close_to_earth));
+        await addImage(context, getImageDir("size", size));
         return canvas.toBuffer("image/png");
     }
     catch(err)
@@ -27,4 +24,13 @@ async function generateImageFromAttributes(background: String, attributes: Map<S
     return undefined;
 }
 
-export default generateImageFromAttributes;
+function getImageDir(attribute: string, value: string)
+{
+    return path.join(IMAGES_DIR, attribute, value + EXTENSION);
+}
+
+async function addImage(context: CanvasRenderingContext2D, path: string)
+{
+    const image = await loadImage(path);
+    context.drawImage(image, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+}
