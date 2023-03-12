@@ -36,11 +36,8 @@ describe("NasaFT", function () {
     expect(userRes.body).toHaveProperty('user_name', username);
   });
   it("Test generating nft image", async () => {
-    const expectedImage = PNG.sync.read(fs.readFileSync(path.join(__dirname, "baselineImages", "hazardSmall.png")));
-    const actualBuffer = await generateImageFromAttributes("background1", new Map<String, String>([
-      ["size", "small"],
-      ["isHazardous", "hazard"]
-    ]));
+    const expectedImage = PNG.sync.read(fs.readFileSync(path.join(__dirname, "baselineImages", "average_far_small.png")));
+    const actualBuffer = await generateImageFromAttributes("background", "average", "far", "small");
     const actualImage = PNG.sync.read(actualBuffer!);
     const {width, height} = expectedImage;
     const diffImage = new PNG({width, height});
@@ -150,4 +147,17 @@ async function getAuthenticationHeader()
     password: "YodaBest",
   });
   return { field: "x-auth-token", value: res.body.accessToken };
+}
+
+async function saveImage(path: string, buffer: Buffer | undefined)
+{
+  if (buffer)
+  {
+    //Add extension if doesnt exist
+    if (!path.toLowerCase().endsWith(".png"))
+    {
+      path = path + ".png"
+    }
+    fs.writeFileSync(path, buffer);
+  }
 }
