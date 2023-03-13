@@ -1,6 +1,6 @@
-import express from "express";
-import { JwtPayload } from "jsonwebtoken";
-import validate from "../utils/validate";
+import express, { Request, Response, NextFunction } from "express";
+import { getUser } from "../model/UsersDb";
+import * as validate from "../utils/validate";
 const router = express.Router();
 
 router.post('/refresh', validate.verifyRequest, function (req, res) {
@@ -8,19 +8,17 @@ router.post('/refresh', validate.verifyRequest, function (req, res) {
   return res.json({ accessToken:  accessToken ? "Bearer " + accessToken : null });
 });
 
-router.post('/login', function (req, res) {
-  if (!validate.verifyPostParams(req, res, ["username", "password"]))
-  {
-    return;
-  }
-  var username = req.body.username;
-  var password = req.body.password;
+router.post('/login', setRequiredLoginParams, validate.verifyPostParams, function (req, res) {
+  const publicAddress = req.body.publicAddress;
+  const signedNonce = req.body.signedNonce;
+  const username = req.body.username;
   //TODO: Add username and password verification here
   const accessToken = validate.createAccessToken(username);
   const refreshToken = validate.createRefreshToken(username);
   if (accessToken && refreshToken) {
     return res.json({
       text: "Login Successful",
+      user: getUser(username),
       accessToken: "Bearer " + accessToken,
       refreshToken: "Bearer " + refreshToken,
     });
@@ -28,5 +26,10 @@ router.post('/login', function (req, res) {
     return res.json({text: "Login Failed"});
   }
 });
+
+async function setRequiredLoginParams(req: Request, res: Response, next: NextFunction) {
+  res.locals.requiredParams = ["publicAddress", "signedNonce", "username"];
+  next();
+}
 
 export default router;

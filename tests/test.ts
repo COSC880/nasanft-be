@@ -7,32 +7,35 @@ import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
 import { Question, Answer, stopSetRandomQuizJob } from "../src/model/QuizzesDb";
+const AUTH_HEADER = "x-auth-token"
 
 describe("NasaFT", function () {
   it("Shouldnt be able to get access token without refresh token.", async () => {
-    await request(app).post("/api/token/refresh").expect(403);
+    await request(app).post("/api/token/refresh").expect(401);
   });
   it("Should be able to authenticate and then get an access token.", async () => {
     const res = await request(app).post("/api/token/login").send({
       username: "xXSpacedOutXx",
-      password: "INeedSpace"
+      signedNonce: "INeedSpace",
+      publicAddress: "0x342423423432423423423"
     });
     expect(res.body).toHaveProperty('accessToken');
     expect(res.body).toHaveProperty('refreshToken');
 
-    const refreshRes = await request(app).post("/api/token/refresh").set("x-auth-token", res.body.refreshToken);
+    const refreshRes = await request(app).post("/api/token/refresh").set(AUTH_HEADER, res.body.refreshToken);
     expect(refreshRes.body).toHaveProperty('accessToken');
   });
   it("Should be able to get username from middleware that decoded token.", async () => {
     const username = "EarthSunRockStar"
     const res = await request(app).post("/api/token/login").send({
       username: username,
-      password: "FavoritePlaceIsSpace"
+      signedNonce: "FavoritePlaceIsSpace",
+      publicAddress: "0x342423423432423423423"
     });
     expect(res.body).toHaveProperty('accessToken');
     expect(res.body).toHaveProperty('refreshToken');
 
-    const userRes = await request(app).get("/api/users/").set("x-auth-token", res.body.accessToken);
+    const userRes = await request(app).get("/api/users/").set(AUTH_HEADER, res.body.accessToken);
     expect(userRes.body).toHaveProperty('user_name', username);
   });
   it("Test generating nft image", async () => {
@@ -72,12 +75,22 @@ describe("NasaFT", function () {
       .set(authenication.field, authenication.value!);
     expect(res.body.last_completed).toEqual(time);
   });
-  it("Should be able to get another user", async () => {
-    const authenication = await getAuthenticationHeader();
-    const username = "SpaceXCellAnt";
-
-    const res = await request(app).get("/api/users/" + username).set(authenication.field, authenication.value!);
-    expect(res.body.user_name).toEqual(username);
+  it("Should only be able to get another user if admin.", async () => {
+    const otherUsername = "EarthSunRockStar"
+    const nonAdminLogin = (await request(app).post("/api/token/login").send({
+      username: "TestUser",
+      signedNonce: "INeedSpace",
+      publicAddress: "123"
+    })).body.accessToken;
+    const adminLogin = (await request(app).post("/api/token/login").send({
+      username: "administgreater",
+      signedNonce: "bossman",
+      publicAddress: "0x0000000000000000000000000000000000011111"
+    })).body.accessToken;
+    const nonAdminRes = await request(app).get("/api/users/" + otherUsername).set(AUTH_HEADER, nonAdminLogin);
+    const adminRes = await request(app).get("/api/users/" + otherUsername).set(AUTH_HEADER, adminLogin);
+    expect(nonAdminRes.status).toEqual(403);
+    expect(adminRes.status).toEqual(200);
   });
   it("Should be able to delete user", async () => {
     const authenication = await getAuthenticationHeader();
@@ -99,8 +112,9 @@ describe("NasaFT", function () {
     const id = res.body.quiz_id;
 
     //Force quiz refresh
+    const adminAuthentication = await getAdminAuthenticationHeader();
     const res2 = await request(app).put("/api/quizzes/")
-      .set(authenication.field, authenication.value!);
+      .set(adminAuthentication.field, adminAuthentication.value!);
     expect(res2.status).toEqual(200);
 
     const res3 = await request(app).get("/api/quizzes/")
@@ -121,7 +135,7 @@ describe("NasaFT", function () {
     });
   });
   it("Should be able to get specific quiz", async () => {
-    const authenication = await getAuthenticationHeader();
+    const authenication = await getAdminAuthenticationHeader();
     const quiz_id  = "0e16e3ff-e7c9-42b4-9984-b4c005443194"
 
     const res = await request(app).get("/api/quizzes/" + quiz_id)
@@ -142,11 +156,22 @@ describe("NasaFT", function () {
 
 async function getAuthenticationHeader() 
 {
-  const res = await request(app).post("/api/token/login").send({
+  const accessToken = (await request(app).post("/api/token/login").send({
     username: "GiveMeSomeSpace",
-    password: "YodaBest",
-  });
-  return { field: "x-auth-token", value: res.body.accessToken };
+    signedNonce: "YodaBest",
+    publicAddress: "0x12345678890"
+  })).body.accessToken;
+  return { field: AUTH_HEADER, value: accessToken };
+}
+
+async function getAdminAuthenticationHeader()
+{
+  const adminLogin = (await request(app).post("/api/token/login").send({
+    username: "administgreater",
+    signedNonce: "bossman",
+    publicAddress: "0x0000000000000000000000000000000000011111"
+  })).body.accessToken;
+  return { field: AUTH_HEADER, value: adminLogin}
 }
 
 async function saveImage(path: string, buffer: Buffer | undefined)
