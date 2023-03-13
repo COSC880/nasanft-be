@@ -1,19 +1,20 @@
 import createHttpError from "http-errors";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
+import { getUser, GetUser } from "../model/UsersDb";
 
 const accessTokenExpiresIn = "30m";
 const refreshTokenExpiresIn = "200d";
 
-function createAccessToken(username: String) : string | undefined {
+export function createAccessToken(username: String) : string | undefined {
   return createToken(username, accessTokenExpiresIn);
 }
 
-function createRefreshToken(username: String) : string | undefined {
+export function createRefreshToken(username: String) : string | undefined {
   return createToken(username, refreshTokenExpiresIn);
 }
 
-async function verifyRequest(req: Request, res: Response, next: NextFunction) {
+export async function verifyRequest(req: Request, res: Response, next: NextFunction) {
   try {
     var token = getToken(req)!;
     const tokenRes = jwt.verify(token, process.env.JWT_SECRET!);
@@ -26,14 +27,30 @@ async function verifyRequest(req: Request, res: Response, next: NextFunction) {
     }
   } catch (err) {
     const message = (err as Error).message ? (<Error>err).message : String(err);
+    res.status(401).json({text: message});
+  }
+}
+
+export async function verifyAdmin(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = await getUser(res.locals.username);
+    if (!user.error && user.data && user.data.isAdmin)
+    {
+      next();
+    } else {
+      throw new Error("User does not have administrator rights");
+    }
+  } catch (err) {
+    const message = (err as Error).message ? (<Error>err).message : String(err);
     res.status(403).json({text: message});
   }
 }
 
-function verifyPostParams(req: Request, res: Response, requiredParams: string[])
+export function verifyPostParams(req: Request, res: Response, next: NextFunction)
 {
+  const requiredParams = res.locals.requiredParams;
   var invalidParameter;
-  requiredParams.forEach(function(param){
+  requiredParams.forEach((param: string) => {
     if (!req.body[param])
     {
       invalidParameter = param;
@@ -43,9 +60,11 @@ function verifyPostParams(req: Request, res: Response, requiredParams: string[])
   if (invalidParameter)
   {
     res.status(400).json({text: "Missing required parameter " + invalidParameter});
-    return false;
   }
-  return true;
+  else
+  {
+    next();
+  }
 }
 
 function createToken(username: String, expiresIn: string) : string | undefined {
@@ -67,5 +86,3 @@ function getToken(req: Request) : string | undefined {
   }
   throw new Error("Invalid Token Provided");
 }
-
-export default { createAccessToken, createRefreshToken, verifyRequest, verifyPostParams };
