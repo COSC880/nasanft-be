@@ -1,7 +1,7 @@
 name: Reusable workflow example
 
 on:
-  run_test_call:
+  workflow_call:
     inputs:
       node-version:
         required: true
