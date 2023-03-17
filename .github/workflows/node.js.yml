@@ -8,27 +8,22 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-    
-env:
-  NODE_ENV: development
-  PORT: 3000
-  JWT_SECRET: ${{ secrets.GITHUB_TOKEN }}
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-  SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
-  SUPABASE_PROJECT_ID: "egaldiqizaelreydwdfc"
-  CONTRACT_ADDRESS: "0xBe70aaEada83419fF7aFbE4506D24f0302bdE90a"
-  CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
-  ALCHEMY_NETWORK: "maticmum"
-  ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
-  TEST_WALLET_PUBLIC_KEY: "0xd154D6e37E59D35757002F74A00bF52EB1c4dA27"
 
 jobs:
   node_16:
     uses: ./.github/workflows/run_test.js.yml
     with:
       node-version: 16.x
+    secrets:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+      CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
+      ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+
   node_18:
     needs: node_16
     uses: ./.github/workflows/run_test.js.yml
     with:
       node-version: 18.x
+    secrets:
+      envPAT: ${{ secrets.envPAT }}
