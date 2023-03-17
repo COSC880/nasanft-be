@@ -8,7 +8,7 @@ router.post('/refresh', validate.verifyRequest, function (req, res) {
   return res.json({ accessToken:  accessToken ? "Bearer " + accessToken : null });
 });
 
-router.post('/login', setRequiredLoginParams, validate.verifyPostParams, function (req, res) {
+router.post('/login', validate.verifyPostParams(["publicAddress", "signedNonce", "username"]), function (req, res) {
   const publicAddress = req.body.publicAddress;
   const signedNonce = req.body.signedNonce;
   const username = req.body.username;
@@ -26,10 +26,5 @@ router.post('/login', setRequiredLoginParams, validate.verifyPostParams, functio
     return res.json({text: "Login Failed"});
   }
 });
-
-async function setRequiredLoginParams(req: Request, res: Response, next: NextFunction) {
-  res.locals.requiredParams = ["publicAddress", "signedNonce", "username"];
-  next();
-}
 
 export default router;

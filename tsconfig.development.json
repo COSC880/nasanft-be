@@ -16,6 +16,7 @@
 
     /* Type Checking */
     "strict": true,                                      /* Enable all strict type-checking options. */
+    "resolveJsonModule": true,
   },
   "exclude": [
     "**/tests/*",

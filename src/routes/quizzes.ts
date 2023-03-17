@@ -11,8 +11,8 @@ router.put('/', validate.verifyRequest, validate.verifyAdmin, async function (re
 
 //Get Current Random Quiz
 router.get('/', validate.verifyRequest, async function (req, res, next) {
-  const {status, text, data} = await QuizzesDB.getRandomQuiz();
-  res.status(status).json(text ? {text: text} : data);
+  const {error, data, status} = await QuizzesDB.getRandomQuiz();
+  res.status(status).json(error ? {text: error.message} : data);
 });
 
 //Get Specific Quiz

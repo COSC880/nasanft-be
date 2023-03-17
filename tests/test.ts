@@ -7,7 +7,8 @@ import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
 import { Question, Answer, stopSetRandomQuizJob } from "../src/model/QuizzesDb";
-const AUTH_HEADER = "x-auth-token"
+import { getSignerPublicAddress } from "../src/model/NftBlockchain";
+const AUTH_HEADER = "x-auth-token";
 
 describe("NasaFT", function () {
   it("Shouldnt be able to get access token without refresh token.", async () => {
@@ -152,6 +153,91 @@ describe("NasaFT", function () {
   it("Should be able to stop cron job", async () => {
     expect(stopSetRandomQuizJob).not.toThrowError();
   });
+  it("Should be able to mint nft tokens, transfer nft tokens, batch transfer nft tokens," + 
+      "get balance of nft tokens, get batch balance of nft tokens, and get uri of nft tokens", async () => {
+    const authenication = await getAdminAuthenticationHeader();
+    //Mint Nft
+    const mintAmount = 30;
+    const mint = await request(app).post("/api/nft/mint")
+      .set(authenication.field, authenication.value!)
+      .send({amount: mintAmount});
+
+    const mintData = mint.body;
+    expect(mintData).toHaveProperty("operator");
+    expect(mintData).toHaveProperty("from");
+    expect(mintData).toHaveProperty("to");
+    expect(mintData).toHaveProperty("id");
+    expect(mintData).toHaveProperty("amount", mintAmount);
+
+    //Transfer Single
+    const from = getSignerPublicAddress();
+    const to = process.env.TEST_WALLET_PUBLIC_KEY;
+    const id = mintData.id;
+    const amount = 5;
+
+    const transferSingle = await request(app).post("/api/nft/transfer")
+      .set(authenication.field, authenication.value!)
+      .send({fromAddress: from, toAddress: to, id: id, amount: amount});
+
+    const transferSingleData = transferSingle.body;
+    expect(transferSingleData).toHaveProperty("operator", from);
+    expect(transferSingleData).toHaveProperty("from", from);
+    expect(transferSingleData).toHaveProperty("to", to);
+    expect(transferSingleData).toHaveProperty("id", id);
+    expect(transferSingleData).toHaveProperty("amount", amount);
+
+    //Mint again
+    const mint2Amount = 20;
+    const mint2 = await request(app).post("/api/nft/mint")
+      .set(authenication.field, authenication.value!)
+      .send({amount: mint2Amount});
+
+    const mint2Data = mint2.body;
+    expect(mint2Data).toHaveProperty("operator");
+    expect(mint2Data).toHaveProperty("from");
+    expect(mint2Data).toHaveProperty("to");
+    expect(mint2Data).toHaveProperty("id");
+    expect(mint2Data).toHaveProperty("amount", mint2Amount);
+    expect(mint2Data.id).not.toEqual(mintData.id);
+
+    //Batch Transfer
+    const ids = [mintData.id, mint2Data.id];
+    const amounts = [5, 3];
+    const transferBatch = await request(app).post("/api/nft/transfer/batch")
+      .set(authenication.field, authenication.value!)
+      .send({fromAddress: from, toAddress: to, ids: ids, amounts: amounts});
+
+    const transferBatchData = transferBatch.body;
+    expect(transferBatchData).toHaveProperty("operator", from);
+    expect(transferBatchData).toHaveProperty("from", from);
+    expect(transferBatchData).toHaveProperty("to", to);
+    expect(transferBatchData).toHaveProperty("ids", ids);
+    expect(transferBatchData).toHaveProperty("amounts", amounts);
+
+    //Get Balance
+    const getBalance = await request(app).post("/api/nft/balance")
+      .set(authenication.field, authenication.value!)
+      .send({account: from, id: id});
+
+    const getBalanceData = getBalance.body;
+    expect(getBalanceData).toHaveProperty("balance", 20);
+
+    //Get Balance Batch
+    const getBalanceBatch = await request(app).post("/api/nft/balance/batch")
+      .set(authenication.field, authenication.value!)
+      .send({accounts: [from, to], ids: ids});
+
+    const getBalanceBatchData = getBalanceBatch.body;
+    expect(getBalanceBatchData).toHaveProperty("balances", [20, 3])
+
+    //Get Uri
+    const getUri = await request(app).post("/api/nft/uri")
+    .set(authenication.field, authenication.value!)
+    .send({id: id});
+
+    const getUriData = getUri.body;
+    expect(getUriData).toHaveProperty("uri", "https://game.example/api/item/" + id + ".json")
+  }, 70000);
 });
 
 async function getAuthenticationHeader() 

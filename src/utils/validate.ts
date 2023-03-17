@@ -46,25 +46,27 @@ export async function verifyAdmin(req: Request, res: Response, next: NextFunctio
   }
 }
 
-export function verifyPostParams(req: Request, res: Response, next: NextFunction)
+export function verifyPostParams(requiredParams: string[])
 {
-  const requiredParams = res.locals.requiredParams;
-  var invalidParameter;
-  requiredParams.forEach((param: string) => {
-    if (!req.body[param])
-    {
-      invalidParameter = param;
-    }
-  });
+  return (req: Request, res: Response, next: NextFunction) => {
+    var invalidParameter: string | undefined | null;
+    requiredParams.forEach((param: string) => {
+      const value = req.body[param];
+      if (value === null || value === undefined)
+      {
+        invalidParameter = param;
+      }
+    });
 
-  if (invalidParameter)
-  {
-    res.status(400).json({text: "Missing required parameter " + invalidParameter});
-  }
-  else
-  {
-    next();
-  }
+    if (invalidParameter)
+    {
+      res.status(400).json({text: "Missing required parameter " + invalidParameter});
+    }
+    else
+    {
+      next();
+    }
+  };
 }
 
 function createToken(username: String, expiresIn: string) : string | undefined {
