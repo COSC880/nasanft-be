@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import {abi} from './NasaFt.json'
+import {abi} from "./NasaFT.json"
 //Connect to contract
 const provider = new ethers.providers.AlchemyProvider(process.env.ALCHEMY_NETWORK, process.env.ALCHEMY_API_KEY);
 const signer =  new ethers.Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, provider);
