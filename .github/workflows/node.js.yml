@@ -20,7 +20,7 @@ jobs:
       CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
       ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
 
-  node_18:
+  node_all:
     needs: node_16
     uses: ./.github/workflows/run_test.js.yml
     with:
