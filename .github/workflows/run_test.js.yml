@@ -1,0 +1,44 @@
+name: Reusable nodejs test runner
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: true
+        type: string
+    secrets:
+      SUPABASE_ACCESS_TOKEN:
+        required: true
+      SUPABASE_API_KEY:
+        required: true
+      CONTRACT_OWNER_PRIVATE_KEY:
+        required: true
+      ALCHEMY_API_KEY:
+        required: true
+
+env:
+  NODE_ENV: development
+  PORT: 3000
+  JWT_SECRET: ${{ secrets.GITHUB_TOKEN }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+  SUPABASE_PROJECT_ID: "egaldiqizaelreydwdfc"
+  CONTRACT_ADDRESS: "0xBe70aaEada83419fF7aFbE4506D24f0302bdE90a"
+  CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
+  ALCHEMY_NETWORK: "maticmum"
+  ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+  TEST_WALLET_PUBLIC_KEY: "0xd154D6e37E59D35757002F74A00bF52EB1c4dA27"
+
+jobs:
+  run_test_job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ inputs.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm test

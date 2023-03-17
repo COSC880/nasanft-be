@@ -14,7 +14,7 @@ const setRandomQuizJob = new CronJob({cronTime: "0 0 * * *", onTick: setRandomQu
 export async function getRandomQuiz()
 {
     return CURRENT_RANDOM_QUIZ ? { status: 200, data: CURRENT_RANDOM_QUIZ }
-        : { status: 500, text: "Current Quiz is not set" };
+        : { status: 500, error: new Error("Current Quiz is not set") };
 }
 
 export async function setRandomQuiz()

@@ -19,7 +19,7 @@ function preBuild()
 
 function build()
 {
-    execSync("tsc --build \"tsconfig." + process.env.NODE_ENV + ".json\"");
+    execSync("tsc --build \"tsconfig." + process.env.NODE_ENV + ".json\"",{encoding: "UTF-8"});
 }
 
 function postBuild()
@@ -45,5 +45,5 @@ function generateTypes()
 function generateType(schemaName, filename)
 {
     execSync("npx supabase gen types typescript --project-id \"" + process.env.SUPABASE_PROJECT_ID + "\" --schema \""
-     + schemaName + "\" > \"" + generatedSchemasDir + "/" + filename + ".ts\"");
+     + schemaName + "\" > \"" + generatedSchemasDir + "/" + filename + ".ts\"", {encoding: "UTF-8"});
 }

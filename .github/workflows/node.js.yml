@@ -8,32 +8,25 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-    
-env:
-  NODE_ENV: development
-  PORT: 3000
-  JWT_SECRET: ${{ secrets.GITHUB_TOKEN }}
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-  SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
-  SUPABASE_PROJECT_ID: "egaldiqizaelreydwdfc"
 
 jobs:
-  build:
+  node_16:
+    uses: ./.github/workflows/run_test.js.yml
+    with:
+      node-version: 16.x
+    secrets:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+      CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
+      ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
 
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [16.x, 18.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+  node_18:
+    needs: node_16
+    uses: ./.github/workflows/run_test.js.yml
+    with:
+      node-version: 18.x
+    secrets:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+      CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
+      ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
