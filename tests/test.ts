@@ -154,7 +154,8 @@ describe("NasaFT", function () {
     expect(stopSetRandomQuizJob).not.toThrowError();
   });
   it("Should be able to mint nft tokens, transfer nft tokens, batch transfer nft tokens," + 
-      "get balance of nft tokens, get batch balance of nft tokens, and get uri of nft tokens", async () => {
+      "get balance of nft tokens, get batch balance of nft tokens, get uri of nft tokens," +
+      " get all owners of an NFT, and get all the NFTs owned by an owner", async () => {
     const authenication = await getAdminAuthenticationHeader();
     //Mint Nft
     const mintAmount = 30;
@@ -175,7 +176,7 @@ describe("NasaFT", function () {
     const id = mintData.id;
     const amount = 5;
 
-    const transferSingle = await request(app).post("/api/nft/transfer")
+    const transferSingle = await request(app).put("/api/nft/transfer")
       .set(authenication.field, authenication.value!)
       .send({fromAddress: from, toAddress: to, id: id, amount: amount});
 
@@ -203,7 +204,7 @@ describe("NasaFT", function () {
     //Batch Transfer
     const ids = [mintData.id, mint2Data.id];
     const amounts = [5, 3];
-    const transferBatch = await request(app).post("/api/nft/transfer/batch")
+    const transferBatch = await request(app).put("/api/nft/transfer/batch")
       .set(authenication.field, authenication.value!)
       .send({fromAddress: from, toAddress: to, ids: ids, amounts: amounts});
 
@@ -231,13 +232,41 @@ describe("NasaFT", function () {
     expect(getBalanceBatchData).toHaveProperty("balances", [20, 3])
 
     //Get Uri
-    const getUri = await request(app).post("/api/nft/uri")
-    .set(authenication.field, authenication.value!)
-    .send({id: id});
+    const getUri = await request(app).get("/api/nft/uri/" + id)
+      .set(authenication.field, authenication.value!)
 
     const getUriData = getUri.body;
-    expect(getUriData).toHaveProperty("uri", "https://game.example/api/item/" + id + ".json")
+    expect(getUriData).toHaveProperty("uri", "https://game.example/api/item/" + id + ".json");
+
+    //Get Owners for Nft
+    const getNftOwners = await request(app).get("/api/nft/" + id)
+      .set(authenication.field, authenication.value!);
+
+    const getNftOwnersData = getNftOwners.body;
+    expect(getNftOwnersData).toHaveProperty("owners");
+    expect(getNftOwnersData.owners).toContain(from.toLowerCase());
+    expect(getNftOwnersData.owners).toContain(to?.toLowerCase());
+
+    //Get Nfts For Owner
+    const getOwnersNft = await request(app).get("/api/nft/ownedBy/" + to)
+      .set(authenication.field, authenication.value!);
+
+    const getOwnersNftData = getOwnersNft.body;
+    expect(getOwnersNftData).toHaveProperty("ownedNfts");
+    const ownedNftsLength = getOwnersNftData.ownedNfts.length;
+    expect(ownedNftsLength).toBeGreaterThanOrEqual(2);
+    const nextToLastNft = getOwnersNftData.ownedNfts[ownedNftsLength - 2];
+    expect(nextToLastNft).toHaveProperty("tokenId", ids[0].toString());
+    const lastNft = getOwnersNftData.ownedNfts[ownedNftsLength - 1];
+    expect(lastNft).toHaveProperty("tokenId", ids[1].toString());
   }, 70000);
+  it("Invalid Nft id should give an error", async () => {
+    const authenication = await getAuthenticationHeader();
+    //Verify invalid id gets error
+    const getUri = await request(app).get("/api/nft/uri/" + "I am not a number")
+    .set(authenication.field, authenication.value!)
+    expect(getUri.status).toEqual(500);
+  }, 10000);
 });
 
 async function getAuthenticationHeader() 

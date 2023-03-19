@@ -1,9 +1,10 @@
-import { ethers } from "ethers";
-import {abi} from "./NasaFT.json"
+import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedBaseNftsResponse } from "alchemy-sdk";
+import {abi} from "./NasaFT.json";
+
 //Connect to contract
-const provider = new ethers.providers.AlchemyProvider(process.env.ALCHEMY_NETWORK, process.env.ALCHEMY_API_KEY);
-const signer =  new ethers.Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, provider);
-const nasaFT = new ethers.Contract(process.env.CONTRACT_ADDRESS!, abi, signer);
+const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
+const signer = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
+const nasaFT = new Contract(process.env.CONTRACT_ADDRESS!, abi, signer);
 
 export async function mintTokens(tokenAmount: number): Promise<ContractResponse<TransferSingleData>> {
     try
@@ -78,8 +79,45 @@ export async function uri(id: number) : Promise<ContractResponse<UriData>>
 {
     try
     {
+        //TODO: use nft.getMetaData to get the metadata
         const uri: string = await nasaFT.uri(id);
         return { status: 200, data: { uri: uri } };
+    }
+    catch(err)
+    {
+        const error = convertToError(err);
+        return { status: 500, error: error }
+    }
+}
+
+export async function getNftOwners(id: number): Promise<ContractResponse<GetOwnersForNftResponse>>
+{
+    try
+    {
+        const owners = await alchemy.nft.getOwnersForNft(process.env.CONTRACT_ADDRESS!, id); 
+        return { status: 200, data: owners}
+    }
+    catch(err)
+    {
+        const error = convertToError(err);
+        return { status: 500, error: error }
+    }
+}
+
+export async function getOwnedNfts(account: string): Promise<ContractResponse<OwnedBaseNftsResponse>>
+{
+    try
+    {
+        //This only returns a maximum of 100 nfts. Need to use pageKey to get the rest
+        const nfts = await alchemy.nft.getNftsForOwner(account);
+        let pageKey = nfts.pageKey;
+        while(pageKey != undefined)
+        {
+            const nextPage = await alchemy.nft.getNftsForOwner(account, {pageKey: pageKey});
+            pageKey = nextPage.pageKey;
+            nfts.ownedNfts.push(...nextPage.ownedNfts);
+        }
+        return { status: 200, data: nfts }
     }
     catch(err)
     {
@@ -141,7 +179,7 @@ function convertToError(error: unknown): Error
     return new Error("Unknown Error");
 }
 
-function convertToNumberArray(bigNums: ethers.BigNumber[])
+function convertToNumberArray(bigNums: BigNumber[])
 {
     const numArr: number[] = [];
     bigNums.forEach(bigNum => {

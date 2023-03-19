@@ -22,12 +22,12 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.10.0",
+    "alchemy-sdk": "^2.6.1",
     "canvas": "^2.11.0",
     "cookie-parser": "~1.4.4",
     "cron": "^2.2.0",
     "debug": "~2.6.9",
     "dotenv": "^16.0.3",
-    "ethers": "^5.7.2",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
