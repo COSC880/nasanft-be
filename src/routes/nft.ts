@@ -10,7 +10,7 @@ router.post('/mint', validate.verifyRequest, validate.verifyAdmin, validate.veri
 });
 
 //Transfer Batch Tokens
-router.post("/transfer/batch", validate.verifyRequest, validate.verifyAdmin,
+router.put("/transfer/batch", validate.verifyRequest, validate.verifyAdmin,
   validate.verifyPostParams(["fromAddress", "toAddress", "ids", "amounts"]),
   async function (req, res, next) {
     const { error, status, data } = await NftBlockchain.safeBatchTransfer(
@@ -19,7 +19,7 @@ router.post("/transfer/batch", validate.verifyRequest, validate.verifyAdmin,
 });
 
 //Transfer Single Tokens
-router.post('/transfer', validate.verifyRequest, validate.verifyAdmin, 
+router.put('/transfer', validate.verifyRequest, validate.verifyAdmin, 
   validate.verifyPostParams(["fromAddress", "toAddress", "id", "amount"]),
   async function (req, res, next) {
     const { error, status, data } = await NftBlockchain.safeTransfer(
@@ -42,9 +42,21 @@ router.post('/balance', validate.verifyRequest, validate.verifyPostParams(["acco
 });
 
 //Get Uri
-router.post('/uri', validate.verifyRequest, validate.verifyPostParams(["id"]), async function (req, res, next) {
-    const {error, status, data} = await NftBlockchain.uri(req.body.id);
+router.get('/uri/:id', validate.verifyRequest, async function (req, res, next) {
+    const {error, status, data} = await NftBlockchain.uri(parseInt(req.params.id));
     res.status(status).json(error ? {text: error.message} : data);
+});
+
+//Get Nft Owners
+router.get('/:id', validate.verifyRequest, async function (req, res, next) {
+  const {error, status, data} = await NftBlockchain.getNftOwners(parseInt(req.params.id));
+  res.status(status).json(error ? {text: error.message} : data);
+});
+
+//Get Nfts Owned By Account
+router.get('/ownedBy/:account', validate.verifyRequest, async function (req, res, next) {
+  const {error, status, data} = await NftBlockchain.getOwnedNfts(req.params.account);
+  res.status(status).json(error ? {text: error.message} : data);
 });
 
 export default router;
