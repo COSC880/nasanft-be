@@ -16,9 +16,9 @@ describe("NasaFT", function () {
   });
   it("Should be able to authenticate and then get an access token.", async () => {
     const res = await request(app).post("/api/token/login").send({
-      username: "xXSpacedOutXx",
-      signedNonce: "INeedSpace",
-      publicAddress: "0x342423423432423423423"
+      user_name: "xXSpacedOutXx",
+      signed_nonce: "INeedSpace",
+      public_address: "0x0123456789012345678901234567890123456789"
     });
     expect(res.body).toHaveProperty('accessToken');
     expect(res.body).toHaveProperty('refreshToken');
@@ -26,18 +26,18 @@ describe("NasaFT", function () {
     const refreshRes = await request(app).post("/api/token/refresh").set(AUTH_HEADER, res.body.refreshToken);
     expect(refreshRes.body).toHaveProperty('accessToken');
   });
-  it("Should be able to get username from middleware that decoded token.", async () => {
-    const username = "EarthSunRockStar"
+  it("Should be able to get public address from middleware that decoded token.", async () => {
+    const public_address = "0x0000000000000000000000000000000000000000";
     const res = await request(app).post("/api/token/login").send({
-      username: username,
-      signedNonce: "FavoritePlaceIsSpace",
-      publicAddress: "0x342423423432423423423"
+      user_name: "EarthSunRockStar",
+      signed_nonce: "FavoritePlaceIsSpace",
+      public_address: public_address
     });
     expect(res.body).toHaveProperty('accessToken');
     expect(res.body).toHaveProperty('refreshToken');
 
     const userRes = await request(app).get("/api/users/").set(AUTH_HEADER, res.body.accessToken);
-    expect(userRes.body).toHaveProperty('user_name', username);
+    expect(userRes.body).toHaveProperty('public_address', public_address);
   });
   it("Test generating nft image", async () => {
     const expectedImage = PNG.sync.read(fs.readFileSync(path.join(__dirname, "baselineImages", "average_far_small.png")));
@@ -52,51 +52,55 @@ describe("NasaFT", function () {
     const authenication = await getAuthenticationHeader();
     const user: InsertUser = {
       user_name: "SpaceXCellAnt",
-      public_address: "0x0000000000000000000000000000000000000000"
+      public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"
     };
     
-    await request(app).post("/api/users/").send(user)
+    await request(app).post("/api/users/").send({user: user})
       .set(authenication.field, authenication.value!).expect(201);
   });
   it("Inserting user without required data should not insert data", async () => {
     const authenication = await getAuthenticationHeader();
     //Missing user_name
-    await request(app).post("/api/users/").send({public_address: "0x0000000000000000000000000000000000000000"})
+    await request(app).post("/api/users/").send({public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"})
       .set(authenication.field, authenication.value!).expect(400);
   });
   it("Should be able to update user", async () => {
     const authenication = await getAuthenticationHeader();
     const time = "22:56:00+00";
+    const user_name = "MajorTom";
+    const public_address = "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
 
     const user: UpdateUser = {
-      last_completed: time
+      last_completed: time,
+      user_name: user_name
     };
     
-    const res = await request(app).put("/api/users/").send({user: user, user_name: "SpaceXCellAnt"})
+    const res = await request(app).put("/api/users/").send({user: user, public_address: public_address})
       .set(authenication.field, authenication.value!);
     expect(res.body.last_completed).toEqual(time);
+    expect(res.body.user_name).toEqual(user_name);
   });
   it("Should only be able to get another user if admin.", async () => {
-    const otherUsername = "EarthSunRockStar"
+    const otherPublicAddress = "0x0000000000000000000000000000000000000000"
     const nonAdminLogin = (await request(app).post("/api/token/login").send({
-      username: "TestUser",
-      signedNonce: "INeedSpace",
-      publicAddress: "123"
+      user_name: "TestUser",
+      signed_nonce: "INeedSpace",
+      public_address: "123"
     })).body.accessToken;
     const adminLogin = (await request(app).post("/api/token/login").send({
-      username: "administgreater",
-      signedNonce: "bossman",
-      publicAddress: "0x0000000000000000000000000000000000011111"
+      user_name: "administgreater",
+      signed_nonce: "bossman",
+      public_address: "0x0000000000000000000000000000000000011111"
     })).body.accessToken;
-    const nonAdminRes = await request(app).get("/api/users/" + otherUsername).set(AUTH_HEADER, nonAdminLogin);
-    const adminRes = await request(app).get("/api/users/" + otherUsername).set(AUTH_HEADER, adminLogin);
+    const nonAdminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, nonAdminLogin);
+    const adminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, adminLogin);
     expect(nonAdminRes.status).toEqual(403);
     expect(adminRes.status).toEqual(200);
   });
   it("Should be able to delete user", async () => {
     const authenication = await getAuthenticationHeader();
     const user: UpdateUser = {
-      user_name: "SpaceXCellAnt"
+      public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"
     };
     
     const res = await request(app).delete("/api/users/").send(user)
@@ -272,9 +276,9 @@ describe("NasaFT", function () {
 async function getAuthenticationHeader() 
 {
   const accessToken = (await request(app).post("/api/token/login").send({
-    username: "GiveMeSomeSpace",
-    signedNonce: "YodaBest",
-    publicAddress: "0x12345678890"
+    user_name: "GiveMeSomeSpace",
+    signed_nonce: "YodaBest",
+    public_address: "0x12345678890"
   })).body.accessToken;
   return { field: AUTH_HEADER, value: accessToken };
 }
@@ -282,9 +286,9 @@ async function getAuthenticationHeader()
 async function getAdminAuthenticationHeader()
 {
   const adminLogin = (await request(app).post("/api/token/login").send({
-    username: "administgreater",
-    signedNonce: "bossman",
-    publicAddress: "0x0000000000000000000000000000000000011111"
+    user_name: "administgreater",
+    signed_nonce: "bossman",
+    public_address: "0x0000000000000000000000000000000000011111"
   })).body.accessToken;
   return { field: AUTH_HEADER, value: adminLogin}
 }

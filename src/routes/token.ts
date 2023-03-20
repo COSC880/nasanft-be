@@ -4,21 +4,21 @@ import * as validate from "../utils/validate";
 const router = express.Router();
 
 router.post('/refresh', validate.verifyRequest, function (req, res) {
-  const accessToken = validate.createAccessToken(res.locals.username);
+  const accessToken = validate.createAccessToken(res.locals.public_address);
   return res.json({ accessToken:  accessToken ? "Bearer " + accessToken : null });
 });
 
-router.post('/login', validate.verifyPostParams(["publicAddress", "signedNonce", "username"]), function (req, res) {
-  const publicAddress = req.body.publicAddress;
-  const signedNonce = req.body.signedNonce;
-  const username = req.body.username;
+router.post('/login', validate.verifyPostParams(["public_address", "signed_nonce", "user_name"]), async function (req, res) {
+  const public_address = req.body.public_address;
+  const signed_nonce = req.body.signed_nonce;
+  const user_name = req.body.user_name;
   //TODO: Add username and password verification here
-  const accessToken = validate.createAccessToken(username);
-  const refreshToken = validate.createRefreshToken(username);
+  const accessToken = validate.createAccessToken(public_address);
+  const refreshToken = validate.createRefreshToken(public_address);
   if (accessToken && refreshToken) {
     return res.json({
       text: "Login Successful",
-      user: getUser(username),
+      user: (await getUser(public_address)).data,
       accessToken: "Bearer " + accessToken,
       refreshToken: "Bearer " + refreshToken,
     });
