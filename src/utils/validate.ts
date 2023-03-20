@@ -6,21 +6,21 @@ import { getUser, GetUser } from "../model/UsersDb";
 const accessTokenExpiresIn = "30m";
 const refreshTokenExpiresIn = "200d";
 
-export function createAccessToken(username: String) : string | undefined {
-  return createToken(username, accessTokenExpiresIn);
+export function createAccessToken(public_address: String) : string | undefined {
+  return createToken(public_address, accessTokenExpiresIn);
 }
 
-export function createRefreshToken(username: String) : string | undefined {
-  return createToken(username, refreshTokenExpiresIn);
+export function createRefreshToken(public_address: String) : string | undefined {
+  return createToken(public_address, refreshTokenExpiresIn);
 }
 
 export async function verifyRequest(req: Request, res: Response, next: NextFunction) {
   try {
     var token = getToken(req)!;
     const tokenRes = jwt.verify(token, process.env.JWT_SECRET!);
-    const username = (tokenRes as JwtPayload).username; 
-    if (username)  {
-      res.locals.username = (tokenRes as JwtPayload).username;
+    const public_address = (tokenRes as JwtPayload).public_address; 
+    if (public_address)  {
+      res.locals.public_address = public_address;
       next();
     } else {
       throw new Error("Invalid decoded token");
@@ -33,7 +33,7 @@ export async function verifyRequest(req: Request, res: Response, next: NextFunct
 
 export async function verifyAdmin(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await getUser(res.locals.username);
+    const user = await getUser(res.locals.public_address);
     if (!user.error && user.data && user.data.isAdmin)
     {
       next();
@@ -69,9 +69,9 @@ export function verifyPostParams(requiredParams: string[])
   };
 }
 
-function createToken(username: String, expiresIn: string) : string | undefined {
+function createToken(public_address: String, expiresIn: string) : string | undefined {
   try {
-    return jwt.sign({ username: username }, process.env.JWT_SECRET!, {
+    return jwt.sign({ public_address: public_address }, process.env.JWT_SECRET!, {
       expiresIn: expiresIn,
     });
   } catch (err) {

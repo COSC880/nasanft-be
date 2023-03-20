@@ -9,19 +9,19 @@ export async function insertUser(user: InsertUser)
   return connection.from(USER_DATA_TABLE).insert(user);
 }
 
-export async function getUser(username: string)
+export async function getUser(public_address: string)
 {
-  return await connection.from(USER_DATA_TABLE).select().filter("user_name", "eq", username).single();
+  return await connection.from(USER_DATA_TABLE).select().filter("public_address", "ilike", public_address).single();
 }
 
-export async function updateUser(username: string, updatedUser: UpdateUser)
+export async function updateUser(public_address: string, updatedUser: UpdateUser)
 {
-  return await connection.from(USER_DATA_TABLE).update(updatedUser).eq("user_name", username).select().single();
+  return await connection.from(USER_DATA_TABLE).update(updatedUser).filter("public_address", "ilike", public_address).select().single();
 }
 
-export async function deleteUser(username: string)
+export async function deleteUser(public_address: string)
 {
-  return await connection.from(USER_DATA_TABLE).delete().filter("user_name", "eq", username);
+  return await connection.from(USER_DATA_TABLE).delete().filter("public_address", "ilike", public_address);
 }
 
 export type InsertUser = UsersSchema["users_data"]["Tables"]["user_data"]["Insert"];
