@@ -1,5 +1,8 @@
-import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedBaseNftsResponse } from "alchemy-sdk";
+import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedBaseNftsResponse, OwnedNft } from "alchemy-sdk";
 import {abi} from "./NasaFT.json";
+import { getUser, updateUser } from "./UsersDb";
+import { verifyMessage } from "@ethersproject/wallet";
+import { randomUUID } from "crypto";
 
 //Connect to contract
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
@@ -104,20 +107,15 @@ export async function getNftOwners(id: number): Promise<ContractResponse<GetOwne
     }
 }
 
-export async function getOwnedNfts(account: string): Promise<ContractResponse<OwnedBaseNftsResponse>>
+export async function getOwnedNfts(account: string): Promise<ContractResponse<{ownedNfts: OwnedNft[]}>>
 {
     try
     {
-        //This only returns a maximum of 100 nfts. Need to use pageKey to get the rest
-        const nfts = await alchemy.nft.getNftsForOwner(account);
-        let pageKey = nfts.pageKey;
-        while(pageKey != undefined)
-        {
-            const nextPage = await alchemy.nft.getNftsForOwner(account, {pageKey: pageKey});
-            pageKey = nextPage.pageKey;
-            nfts.ownedNfts.push(...nextPage.ownedNfts);
+        const ownedNfts: OwnedNft[] = [];
+        for await (const nft of alchemy.nft.getNftsForOwnerIterator(account)) {
+            ownedNfts.push(nft);
         }
-        return { status: 200, data: nfts }
+        return { status: 200, data: { ownedNfts: ownedNfts } }
     }
     catch(err)
     {
@@ -126,8 +124,30 @@ export async function getOwnedNfts(account: string): Promise<ContractResponse<Ow
     }
 }
 
-export function getSignerPublicAddress(): string {
-    return signer.address;
+export async function generateNonce(public_address: string)
+{
+  return await updateUser(public_address, {"nonce": "Please sign this nonce with the wallet associated " +
+    "with your account to authenticate yourself for login: " + randomUUID()});
+}
+
+export async function verifyNonce(public_address: string, signed_nonce: string): Promise<ContractResponse<{verified: boolean}>>
+{
+    try
+    {
+        let {error, data, status} = await getUser(public_address);
+        if (!error && data && data.nonce) {
+            const unsignedNonce = data.nonce;
+            const verified = verifyMessage(unsignedNonce, signed_nonce).toLowerCase() === public_address.toLowerCase();
+            return {status: verified ? 200 : 401, data: {verified: verified}}
+        }
+        else {
+            return {status: status, error: error ? convertToError(error) : new Error("Could not get nonce for user")}
+        }
+    }
+    catch(error)
+    {
+        return { status: 500, error: convertToError(error) }
+    }
 }
 
 function convertToTransferSingleResponse(event: any) : ContractResponse<TransferSingleData>
@@ -175,6 +195,10 @@ function convertToError(error: unknown): Error
     if (error instanceof Error)
     {
         return error as Error;
+    }
+    else if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === "string")
+    {
+        return new Error(error.message);
     }
     return new Error("Unknown Error");
 }

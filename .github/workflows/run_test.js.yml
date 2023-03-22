@@ -15,6 +15,8 @@ on:
         required: true
       ALCHEMY_API_KEY:
         required: true
+      TEST_WALLET_PRIVATE_KEY:
+        required: true
 
 env:
   NODE_ENV: development
@@ -27,7 +29,7 @@ env:
   CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
   ALCHEMY_NETWORK: "polygon-mumbai"
   ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
-  TEST_WALLET_PUBLIC_KEY: "0xd154D6e37E59D35757002F74A00bF52EB1c4dA27"
+  TEST_WALLET_PRIVATE_KEY: ${{ secrets.TEST_WALLET_PRIVATE_KEY }}
 
 jobs:
   run_test_job:

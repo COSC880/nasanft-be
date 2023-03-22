@@ -1,7 +1,6 @@
-import createHttpError from "http-errors";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { getUser, GetUser } from "../model/UsersDb";
+import { getUser } from "../model/UsersDb";
 
 const accessTokenExpiresIn = "30m";
 const refreshTokenExpiresIn = "200d";
@@ -71,7 +70,7 @@ export function verifyPostParams(requiredParams: string[])
 
 function createToken(public_address: String, expiresIn: string) : string | undefined {
   try {
-    return jwt.sign({ public_address: public_address }, process.env.JWT_SECRET!, {
+    return "Bearer " + jwt.sign({ public_address: public_address }, process.env.JWT_SECRET!, {
       expiresIn: expiresIn,
     });
   } catch (err) {
