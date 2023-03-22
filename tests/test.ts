@@ -7,38 +7,68 @@ import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
 import { Question, Answer, stopSetRandomQuizJob } from "../src/model/QuizzesDb";
-import { getSignerPublicAddress } from "../src/model/NftBlockchain";
+import { createAccessToken } from "../src/utils/validate";
+import { Alchemy, Network, Wallet } from "alchemy-sdk";
 const AUTH_HEADER = "x-auth-token";
+const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
+const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
+const owner = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
 
 describe("NasaFT", function () {
+  it("Should be able to get unique nonce.", async () => {
+    const public_address = "0x0000000000000000000000000000000000011111";
+    const nonce1 = await request(app).get("/api/token/" + public_address);
+    expect(nonce1.status).toEqual(200);
+    expect(nonce1.body).toHaveProperty("nonce");
+    const nonce2 = await request(app).get("/api/token/" + public_address);
+    expect(nonce2.status).toEqual(200);
+    expect(nonce2.body).toHaveProperty("nonce");
+    expect(nonce1.body.nonce).not.toEqual(nonce2.body.nonce);
+  });
   it("Shouldnt be able to get access token without refresh token.", async () => {
     await request(app).post("/api/token/refresh").expect(401);
   });
-  it("Should be able to authenticate and then get an access token.", async () => {
-    const res = await request(app).post("/api/token/login").send({
-      user_name: "xXSpacedOutXx",
-      signed_nonce: "INeedSpace",
-      public_address: "0x0123456789012345678901234567890123456789"
-    });
-    expect(res.body).toHaveProperty('accessToken');
-    expect(res.body).toHaveProperty('refreshToken');
+  it("Should be able to authenticate and then get an access token with encoded public address.", async () => {
+    const test_public_address = await testSigner.getAddress();
 
-    const refreshRes = await request(app).post("/api/token/refresh").set(AUTH_HEADER, res.body.refreshToken);
+    //Test failed login
+    const failedNonceRes = await request(app).get("/api/token/" + test_public_address);
+    expect(failedNonceRes.status).toEqual(200);
+    expect(failedNonceRes.body).toHaveProperty("nonce");
+    const failedUnsignedNonce = failedNonceRes.body.nonce;
+    const failed_signed_nonce = await owner.signMessage(failedUnsignedNonce);
+    await request(app).post("/api/token/login").send({
+      signed_nonce: await owner.signMessage(failed_signed_nonce),
+      public_address: test_public_address
+    }).expect(401);
+    
+    //Test successful login
+    const nonceRes = await request(app).get("/api/token/" + test_public_address);
+    expect(nonceRes.status).toEqual(200);
+    expect(nonceRes.body).toHaveProperty("nonce");
+    const unsignedNonce = nonceRes.body.nonce;
+    const signed_nonce = await testSigner.signMessage(unsignedNonce);
+    const loginRes = await request(app).post("/api/token/login").send({
+      signed_nonce: signed_nonce,
+      public_address: test_public_address
+    });
+    expect(loginRes.body).toHaveProperty('accessToken');
+    expect(loginRes.body).toHaveProperty('refreshToken');
+    expect(loginRes.body).toHaveProperty('user');
+    expect(loginRes.body.accessToken).not.toEqual(loginRes.body.refreshToken);
+
+    //Wait to ensure we get a new access token as if we are in the same second as the old token we will get the same token
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    //Test we get a new access token when we refresh
+    const refreshRes = await request(app).post("/api/token/refresh").set(AUTH_HEADER, loginRes.body.refreshToken);
     expect(refreshRes.body).toHaveProperty('accessToken');
-  });
-  it("Should be able to get public address from middleware that decoded token.", async () => {
-    const public_address = "0x0000000000000000000000000000000000000000";
-    const res = await request(app).post("/api/token/login").send({
-      user_name: "EarthSunRockStar",
-      signed_nonce: "FavoritePlaceIsSpace",
-      public_address: public_address
-    });
-    expect(res.body).toHaveProperty('accessToken');
-    expect(res.body).toHaveProperty('refreshToken');
+    expect(refreshRes.body.accessToken).not.toEqual(loginRes.body.accessToken);
 
-    const userRes = await request(app).get("/api/users/").set(AUTH_HEADER, res.body.accessToken);
-    expect(userRes.body).toHaveProperty('public_address', public_address);
-  });
+    //Test we can get the public address out of the access token
+    const userRes = await request(app).get("/api/users/").set(AUTH_HEADER, refreshRes.body.accessToken);
+    expect(userRes.body).toHaveProperty('public_address', test_public_address);
+  }, 10000);
   it("Test generating nft image", async () => {
     const expectedImage = PNG.sync.read(fs.readFileSync(path.join(__dirname, "baselineImages", "average_far_small.png")));
     const actualBuffer = await generateImageFromAttributes("background", "average", "far", "small");
@@ -49,23 +79,23 @@ describe("NasaFT", function () {
     expect(match).toEqual(0);
   });
   it("Inserting user with required data should insert data", async () => {
-    const authenication = await getAuthenticationHeader();
+    const authenication = getUserAccessToken();
     const user: InsertUser = {
       user_name: "SpaceXCellAnt",
       public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"
     };
     
     await request(app).post("/api/users/").send({user: user})
-      .set(authenication.field, authenication.value!).expect(201);
+      .set(AUTH_HEADER, authenication!).expect(201);
   });
   it("Inserting user without required data should not insert data", async () => {
-    const authenication = await getAuthenticationHeader();
+    const authenication = getUserAccessToken();
     //Missing user_name
     await request(app).post("/api/users/").send({public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"})
-      .set(authenication.field, authenication.value!).expect(400);
+      .set(AUTH_HEADER, authenication!).expect(400);
   });
   it("Should be able to update user", async () => {
-    const authenication = await getAuthenticationHeader();
+    const authenication = getUserAccessToken();
     const time = "22:56:00+00";
     const user_name = "MajorTom";
     const public_address = "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
@@ -76,62 +106,54 @@ describe("NasaFT", function () {
     };
     
     const res = await request(app).put("/api/users/").send({user: user, public_address: public_address})
-      .set(authenication.field, authenication.value!);
+      .set(AUTH_HEADER, authenication!);
     expect(res.body.last_completed).toEqual(time);
     expect(res.body.user_name).toEqual(user_name);
   });
   it("Should only be able to get another user if admin.", async () => {
     const otherPublicAddress = "0x0000000000000000000000000000000000000000"
-    const nonAdminLogin = (await request(app).post("/api/token/login").send({
-      user_name: "TestUser",
-      signed_nonce: "INeedSpace",
-      public_address: "123"
-    })).body.accessToken;
-    const adminLogin = (await request(app).post("/api/token/login").send({
-      user_name: "administgreater",
-      signed_nonce: "bossman",
-      public_address: "0x0000000000000000000000000000000000011111"
-    })).body.accessToken;
-    const nonAdminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, nonAdminLogin);
-    const adminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, adminLogin);
+    const nonAdminLogin = getUserAccessToken();
+    const adminLogin = getAdminAccessToken();
+    const nonAdminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, nonAdminLogin!);
+    const adminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, adminLogin!);
     expect(nonAdminRes.status).toEqual(403);
     expect(adminRes.status).toEqual(200);
   });
   it("Should be able to delete user", async () => {
-    const authenication = await getAuthenticationHeader();
+    const authenication = getUserAccessToken();
     const user: UpdateUser = {
       public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"
     };
     
     const res = await request(app).delete("/api/users/").send(user)
-      .set(authenication.field, authenication.value!);
+      .set(AUTH_HEADER, authenication!);
     expect(res.status).toEqual(204);
   });
   it("Should be able to get a random quiz", async () => {
-    const authenication = await getAuthenticationHeader();
+    const authenication = getUserAccessToken();
     
     const res = await request(app).get("/api/quizzes/")
-      .set(authenication.field, authenication.value!);
+      .set(AUTH_HEADER, authenication!);
     expect(res.status).toEqual(200);
 
     const id = res.body.quiz_id;
 
     //Force quiz refresh
-    const adminAuthentication = await getAdminAuthenticationHeader();
+    const adminAuthentication = getAdminAccessToken();
     const res2 = await request(app).put("/api/quizzes/")
-      .set(adminAuthentication.field, adminAuthentication.value!);
+      .set(AUTH_HEADER, adminAuthentication!);
     expect(res2.status).toEqual(200);
 
     const res3 = await request(app).get("/api/quizzes/")
-    .set(authenication.field, authenication.value!);
+    .set(AUTH_HEADER, authenication!);
     expect(res3.status).toEqual(200);
     expect(res3.body.quiz_id).not.toEqual(id);
   });
   it("Questions should have the right answers returned", async () => {
-    const authenication = await getAuthenticationHeader();
+    const authenication = getUserAccessToken();
     
     const res = await request(app).get("/api/quizzes/")
-      .set(authenication.field, authenication.value!);
+      .set(AUTH_HEADER, authenication!);
     expect(res.status).toEqual(200);
     res.body.questions.forEach((question: Question) => {
       question?.answers.forEach((answer: Answer) => {
@@ -140,11 +162,11 @@ describe("NasaFT", function () {
     });
   });
   it("Should be able to get specific quiz", async () => {
-    const authenication = await getAdminAuthenticationHeader();
+    const authenication = getAdminAccessToken();
     const quiz_id  = "0e16e3ff-e7c9-42b4-9984-b4c005443194"
 
     const res = await request(app).get("/api/quizzes/" + quiz_id)
-      .set(authenication.field, authenication.value!);
+      .set(AUTH_HEADER, authenication!);
     expect(res.status).toEqual(200);
     expect(res.body.quiz_id).toEqual(quiz_id);
     res.body.questions.forEach((question: Question) => {
@@ -160,11 +182,14 @@ describe("NasaFT", function () {
   it("Should be able to mint nft tokens, transfer nft tokens, batch transfer nft tokens," + 
       "get balance of nft tokens, get batch balance of nft tokens, get uri of nft tokens," +
       " get all owners of an NFT, and get all the NFTs owned by an owner", async () => {
-    const authenication = await getAdminAuthenticationHeader();
+    const authenication = getAdminAccessToken();
+    const owner_public_address = await owner.getAddress();
+    const test_public_address = await testSigner.getAddress();
+    
     //Mint Nft
     const mintAmount = 30;
     const mint = await request(app).post("/api/nft/mint")
-      .set(authenication.field, authenication.value!)
+      .set(AUTH_HEADER, authenication!)
       .send({amount: mintAmount});
 
     const mintData = mint.body;
@@ -175,13 +200,13 @@ describe("NasaFT", function () {
     expect(mintData).toHaveProperty("amount", mintAmount);
 
     //Transfer Single
-    const from = getSignerPublicAddress();
-    const to = process.env.TEST_WALLET_PUBLIC_KEY;
+    const from = owner_public_address;
+    const to = test_public_address;
     const id = mintData.id;
     const amount = 5;
 
     const transferSingle = await request(app).put("/api/nft/transfer")
-      .set(authenication.field, authenication.value!)
+      .set(AUTH_HEADER, authenication!)
       .send({fromAddress: from, toAddress: to, id: id, amount: amount});
 
     const transferSingleData = transferSingle.body;
@@ -194,7 +219,7 @@ describe("NasaFT", function () {
     //Mint again
     const mint2Amount = 20;
     const mint2 = await request(app).post("/api/nft/mint")
-      .set(authenication.field, authenication.value!)
+      .set(AUTH_HEADER, authenication!)
       .send({amount: mint2Amount});
 
     const mint2Data = mint2.body;
@@ -209,7 +234,7 @@ describe("NasaFT", function () {
     const ids = [mintData.id, mint2Data.id];
     const amounts = [5, 3];
     const transferBatch = await request(app).put("/api/nft/transfer/batch")
-      .set(authenication.field, authenication.value!)
+      .set(AUTH_HEADER, authenication!)
       .send({fromAddress: from, toAddress: to, ids: ids, amounts: amounts});
 
     const transferBatchData = transferBatch.body;
@@ -221,7 +246,7 @@ describe("NasaFT", function () {
 
     //Get Balance
     const getBalance = await request(app).post("/api/nft/balance")
-      .set(authenication.field, authenication.value!)
+      .set(AUTH_HEADER, authenication!)
       .send({account: from, id: id});
 
     const getBalanceData = getBalance.body;
@@ -229,7 +254,7 @@ describe("NasaFT", function () {
 
     //Get Balance Batch
     const getBalanceBatch = await request(app).post("/api/nft/balance/batch")
-      .set(authenication.field, authenication.value!)
+      .set(AUTH_HEADER, authenication!)
       .send({accounts: [from, to], ids: ids});
 
     const getBalanceBatchData = getBalanceBatch.body;
@@ -237,14 +262,14 @@ describe("NasaFT", function () {
 
     //Get Uri
     const getUri = await request(app).get("/api/nft/uri/" + id)
-      .set(authenication.field, authenication.value!)
+      .set(AUTH_HEADER, authenication!)
 
     const getUriData = getUri.body;
     expect(getUriData).toHaveProperty("uri", "https://game.example/api/item/" + id + ".json");
 
     //Get Owners for Nft
     const getNftOwners = await request(app).get("/api/nft/" + id)
-      .set(authenication.field, authenication.value!);
+      .set(AUTH_HEADER, authenication!);
 
     const getNftOwnersData = getNftOwners.body;
     expect(getNftOwnersData).toHaveProperty("owners");
@@ -253,7 +278,7 @@ describe("NasaFT", function () {
 
     //Get Nfts For Owner
     const getOwnersNft = await request(app).get("/api/nft/ownedBy/" + to)
-      .set(authenication.field, authenication.value!);
+      .set(AUTH_HEADER, authenication!);
 
     const getOwnersNftData = getOwnersNft.body;
     expect(getOwnersNftData).toHaveProperty("ownedNfts");
@@ -265,32 +290,24 @@ describe("NasaFT", function () {
     expect(lastNft).toHaveProperty("tokenId", ids[1].toString());
   }, 70000);
   it("Invalid Nft id should give an error", async () => {
-    const authenication = await getAuthenticationHeader();
+    const authenication = getUserAccessToken();
     //Verify invalid id gets error
     const getUri = await request(app).get("/api/nft/uri/" + "I am not a number")
-    .set(authenication.field, authenication.value!)
+    .set(AUTH_HEADER, authenication!)
     expect(getUri.status).toEqual(500);
   }, 10000);
 });
 
-async function getAuthenticationHeader() 
+function getUserAccessToken() 
 {
-  const accessToken = (await request(app).post("/api/token/login").send({
-    user_name: "GiveMeSomeSpace",
-    signed_nonce: "YodaBest",
-    public_address: "0x12345678890"
-  })).body.accessToken;
-  return { field: AUTH_HEADER, value: accessToken };
+  //Fake Login For Testing
+  return createAccessToken("0x12345678890");
 }
 
-async function getAdminAuthenticationHeader()
+function getAdminAccessToken()
 {
-  const adminLogin = (await request(app).post("/api/token/login").send({
-    user_name: "administgreater",
-    signed_nonce: "bossman",
-    public_address: "0x0000000000000000000000000000000000011111"
-  })).body.accessToken;
-  return { field: AUTH_HEADER, value: adminLogin}
+  //Fake Login For Testing
+  return createAccessToken("0x0000000000000000000000000000000000011111");
 }
 
 async function saveImage(path: string, buffer: Buffer | undefined)
