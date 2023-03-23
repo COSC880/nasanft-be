@@ -24,12 +24,12 @@ export async function generateNewNeo()
         const neo = await getRandomNeo(nasaRes.data.near_earth_objects[dateString]);
         const id = neo.id;
         const name = neo.name;
-        const size = neo.estimated_diameter.miles.estimated_diameter_max;
+        const size = neo.estimated_diameter.feet.estimated_diameter_max;
         const range = getClosestApproach(neo.close_approach_data);
         const velocity = getLargestVelocity(neo.close_approach_data);
         const insertNeo: InsertNEO = {id: id, name: name,
             dateUTC: twoDays.getTime(),
-            size: size, range: range, velocity: velocity};
+            "size (feet)": size, "range(miles)": range, "velocity(MPH)": velocity};
         return await connection.from(NEO_DATA_TABLE).insert(insertNeo);
     }
     catch(err) {
