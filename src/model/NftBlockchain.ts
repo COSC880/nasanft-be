@@ -190,7 +190,7 @@ function convertToTransferData(event: any) : TransferData
         };
 }
 
-function convertToError(error: unknown): Error
+export function convertToError(error: unknown): Error
 {
     if (error instanceof Error)
     {

@@ -140,7 +140,7 @@ describe("NasaFT", function () {
 
     //Force quiz refresh
     const adminAuthentication = getAdminAccessToken();
-    const res2 = await request(app).put("/api/quizzes/")
+    const res2 = await request(app).put("/api/quizzes/").send({ generateNewNeo: true })
       .set(AUTH_HEADER, adminAuthentication!);
     expect(res2.status).toEqual(200);
 

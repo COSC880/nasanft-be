@@ -40,6 +40,7 @@ function generateTypes()
     fse.mkdirpSync(generatedSchemasDir, {recursive: true});
     generateType("users_data", "Users");    
     generateType("quiz_information", "Quizzes");
+    generateType("nft", "Neos");
 }
 
 function generateType(schemaName, filename)
