@@ -20,6 +20,7 @@ jobs:
       CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
       ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
       TEST_WALLET_PRIVATE_KEY: ${{ secrets.TEST_WALLET_PRIVATE_KEY }}
+      NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
 
   node_18:
     needs: node_16
@@ -32,3 +33,4 @@ jobs:
       CONTRACT_OWNER_PRIVATE_KEY: ${{ secrets.CONTRACT_OWNER_PRIVATE_KEY }}
       ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
       TEST_WALLET_PRIVATE_KEY: ${{ secrets.TEST_WALLET_PRIVATE_KEY }}
+      NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
