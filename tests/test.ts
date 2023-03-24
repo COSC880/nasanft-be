@@ -96,18 +96,15 @@ describe("NasaFT", function () {
   });
   it("Should be able to update user", async () => {
     const authenication = getUserAccessToken();
-    const time = "22:56:00+00";
     const user_name = "MajorTom";
     const public_address = "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
 
     const user: UpdateUser = {
-      last_completed: time,
       user_name: user_name
     };
     
     const res = await request(app).put("/api/users/").send({user: user, public_address: public_address})
       .set(AUTH_HEADER, authenication!);
-    expect(res.body.last_completed).toEqual(time);
     expect(res.body.user_name).toEqual(user_name);
   });
   it("Should only be able to get another user if admin.", async () => {
@@ -140,7 +137,7 @@ describe("NasaFT", function () {
 
     //Force quiz refresh
     const adminAuthentication = getAdminAccessToken();
-    const res2 = await request(app).put("/api/quizzes/")
+    const res2 = await request(app).put("/api/quizzes/").send({ generateNewNeo: true })
       .set(AUTH_HEADER, adminAuthentication!);
     expect(res2.status).toEqual(200);
 
