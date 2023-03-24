@@ -1,4 +1,4 @@
-import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedBaseNftsResponse, OwnedNft } from "alchemy-sdk";
+import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedBaseNftsResponse, OwnedNft, NftOrdering } from "alchemy-sdk";
 import {abi} from "./NasaFT.json";
 import { getUser, updateUser } from "./UsersDb";
 import { verifyMessage } from "@ethersproject/wallet";
@@ -112,7 +112,7 @@ export async function getOwnedNfts(account: string): Promise<ContractResponse<{o
     try
     {
         const ownedNfts: OwnedNft[] = [];
-        for await (const nft of alchemy.nft.getNftsForOwnerIterator(account)) {
+        for await (const nft of alchemy.nft.getNftsForOwnerIterator(account, {orderBy: NftOrdering.TRANSFERTIME})) {
             ownedNfts.push(nft);
         }
         return { status: 200, data: { ownedNfts: ownedNfts } }

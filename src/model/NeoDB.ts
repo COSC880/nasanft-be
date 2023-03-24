@@ -49,7 +49,7 @@ async function getRandomNeo(neos: any[])
     {
         return neosMap.values().next().value;
     }
-    throw new Error("Could not get a NEO that hasn't yet been used")
+    throw new Error("Could not get a NEO that hasn't yet been used");
 }
 
 function getClosestApproach(close_approach_data: any[])
