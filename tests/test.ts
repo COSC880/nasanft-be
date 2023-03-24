@@ -79,20 +79,18 @@ describe("NasaFT", function () {
     expect(match).toEqual(0);
   });
   it("Inserting user with required data should insert data", async () => {
-    const authenication = getUserAccessToken();
     const user: InsertUser = {
       user_name: "SpaceXCellAnt",
       public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"
     };
     
     await request(app).post("/api/users/").send({user: user})
-      .set(AUTH_HEADER, authenication!).expect(201);
+      .expect(201);
   });
   it("Inserting user without required data should not insert data", async () => {
-    const authenication = getUserAccessToken();
     //Missing user_name
     await request(app).post("/api/users/").send({public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"})
-      .set(AUTH_HEADER, authenication!).expect(400);
+      .expect(400);
   });
   it("Should be able to update user", async () => {
     const authenication = getUserAccessToken();
