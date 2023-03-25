@@ -6,7 +6,7 @@ import path from "path";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
-import { Question, Answer, stopSetRandomQuizJob } from "../src/model/QuizzesDb";
+import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../src/model/QuizzesDb";
 import { createAccessToken } from "../src/utils/validate";
 import { Alchemy, Network, Wallet } from "alchemy-sdk";
 const AUTH_HEADER = "x-auth-token";
@@ -132,6 +132,20 @@ describe("NasaFT", function () {
     expect(res.status).toEqual(200);
 
     const id = res.body.quiz_id;
+
+    //Add Winner
+    const winnerRes = await request(app).post("/api/quizzes").send({public_address: "0x0000000000000000000000000000000000011111"})
+      .set(AUTH_HEADER, authenication!)
+    expect(winnerRes.status).toEqual(201);
+    
+    //Add again and make sure wasnt added twice
+    const winner2Res = await request(app).post("/api/quizzes").send({public_address: "0x0000000000000000000000000000000000011111"})
+      .set(AUTH_HEADER, authenication!);
+    expect(winner2Res.status).toEqual(201);
+
+    const winners = await getCurrentWinners();
+    expect(winners.data);
+    expect(winners.data?.length).toEqual(1);
 
     //Force quiz refresh
     const adminAuthentication = getAdminAccessToken();

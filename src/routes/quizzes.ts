@@ -25,4 +25,11 @@ router.get('/:quiz_id', validate.verifyRequest, validate.verifyAdmin, async func
   const {error, data, status} = await QuizzesDB.getQuiz(req.params.quiz_id);
   res.status(status).json(error ? {text: error.message} : data);
 });
+
+//Set Winner
+router.post('/', validate.verifyRequest, validate.verifyPostParams(["public_address"]), async function (req, res, next) {
+  const {error, data, status} = await QuizzesDB.setWinner(req.body.public_address);
+  res.status(status).json(error ? {text: error.message} : data);
+});
+
 export default router;
