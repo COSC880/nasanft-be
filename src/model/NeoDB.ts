@@ -30,11 +30,16 @@ export async function generateNewNeo()
         const insertNeo: InsertNEO = {id: id, name: name,
             dateUTC: twoDays.getTime(),
             "size (feet)": size, "range(miles)": range, "velocity(MPH)": velocity};
-        return await connection.from(NEO_DATA_TABLE).insert(insertNeo);
+        CURRENT_NEO = (await connection.from(NEO_DATA_TABLE).insert(insertNeo).select().single()).data;
     }
     catch(err) {
-        return {status: 500, statusText: "Error occured when generating new neo", error: convertToError(err) };
+        CURRENT_NEO = null;
     }
+}
+
+export function getCurrentNeo()
+{
+    return CURRENT_NEO;
 }
 
 async function getRandomNeo(neos: any[])

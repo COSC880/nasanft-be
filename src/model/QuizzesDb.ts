@@ -1,13 +1,14 @@
 import { getConnection } from "./UtilsDb";
 import { Database as QuizzesSchema } from "../schemas/Quizzes";
 import { CronJob } from "cron";
-import { generateNewNeo } from "./NeoDB";
+import { generateNewNeo, getCurrentNeo } from "./NeoDB";
 
 const connection = getConnection<QuizzesSchema>("quiz_information");
 const QUIZZES_TABLE = "quizzes"
 const QUESTIONS_TABLE = "quiz_questions";
 const ANSWERS_TABLE = "quiz_answers";
 const RANDOM_QUIZ_VIEW = "random_quizzes";
+const WINNERS = "winners";
 
 var CURRENT_RANDOM_QUIZ: Quiz;
 //Hard to do a cron job for a true every other day so just going to alternate in the everyday cron job
@@ -28,11 +29,7 @@ export async function setRandomQuiz()
 {
   if (neoNeedsGeneration)
   {
-    const res = await generateNewNeo();
-    if (res.error)
-    {
-      return res;
-    }
+    await generateNewNeo();
   }
   const res = await connection.from(RANDOM_QUIZ_VIEW).select("*, questions:" + QUESTIONS_TABLE + "!" + QUESTIONS_TABLE +
     "_quiz_id_fkey (*, answers:" + ANSWERS_TABLE + "!" + ANSWERS_TABLE + "_question_id_fkey (*))")
@@ -58,6 +55,18 @@ export async function getQuiz(quiz_id: string)
 export function stopSetRandomQuizJob()
 {
     setRandomQuizJob.stop();
+}
+
+export async function getCurrentWinners()
+{
+  const currentNeo = getCurrentNeo();
+  return await connection.from(WINNERS).select("*").filter("neo_id", "eq", currentNeo?.id);
+}
+
+export async function setWinner(public_address: string)
+{
+  const currentNeo = getCurrentNeo();
+  return await connection.from(WINNERS).upsert({ neo_id: currentNeo?.id!, public_address: public_address }, { onConflict: "neo_id, public_address" });
 }
 
 export type Answer = undefined | null | QuizzesSchema["quiz_information"]["Tables"]["quiz_answers"]["Row"];
