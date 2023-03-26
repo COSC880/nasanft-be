@@ -9,10 +9,10 @@ const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: proce
 const signer = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
 const nasaFT = new Contract(process.env.CONTRACT_ADDRESS!, abi, signer);
 
-export async function mintTokens(tokenAmount: number): Promise<ContractResponse<TransferSingleData>> {
+export async function mintTokens(tokenId: number, tokenAmount: number): Promise<ContractResponse<TransferSingleData>> {
     try
     {
-        const tx = await (await nasaFT.mintTokens(tokenAmount)).wait();
+        const tx = await (await nasaFT.mintTokens(tokenId, tokenAmount)).wait();
         return convertToTransferSingleResponse(tx.events[0].args);
     }
     catch(err)
