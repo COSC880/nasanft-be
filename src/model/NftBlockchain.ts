@@ -112,7 +112,7 @@ export async function getOwnedNfts(account: string): Promise<ContractResponse<{o
     try
     {
         const ownedNfts: OwnedNft[] = [];
-        for await (const nft of alchemy.nft.getNftsForOwnerIterator(account, {orderBy: NftOrdering.TRANSFERTIME})) {
+        for await (const nft of alchemy.nft.getNftsForOwnerIterator(account)) {
             ownedNfts.push(nft);
         }
         return { status: 200, data: { ownedNfts: ownedNfts } }

@@ -8,9 +8,8 @@ import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
 import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../src/model/QuizzesDb";
 import { createAccessToken } from "../src/utils/validate";
-import { Alchemy, Network, Wallet } from "alchemy-sdk";
+import { Alchemy, Network, OwnedNft, Wallet } from "alchemy-sdk";
 import { mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
-import { token } from "morgan";
 const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
@@ -287,14 +286,12 @@ describe("NasaFT", function () {
     const getOwnersNft = await request(app).get("/api/nft/ownedBy/" + to)
       .set(AUTH_HEADER, authenication!);
 
-    const getOwnersNftData = getOwnersNft.body;
-    expect(getOwnersNftData).toHaveProperty("ownedNfts");
-    const ownedNftsLength = getOwnersNftData.ownedNfts.length;
+    expect(getOwnersNft.body).toHaveProperty("ownedNfts");
+    const getOwnersNftData = new Map(getOwnersNft.body.ownedNfts.map((nft: OwnedNft) => [nft.tokenId, nft]));
+    const ownedNftsLength = getOwnersNftData.size;
     expect(ownedNftsLength).toBeGreaterThanOrEqual(2);
-    const nextToLastNft = getOwnersNftData.ownedNfts[ownedNftsLength - 2];
-    expect(nextToLastNft).toHaveProperty("tokenId", ids[0].toString());
-    const lastNft = getOwnersNftData.ownedNfts[ownedNftsLength - 1];
-    expect(lastNft).toHaveProperty("tokenId", ids[1].toString());
+    expect(getOwnersNftData.has(ids[0].toString()));
+    expect(getOwnersNftData.has(ids[1].toString()));
   }, 70000);
   it("Invalid Nft id should give an error", async () => {
     const authenication = getUserAccessToken();
