@@ -1,7 +1,8 @@
 import { getConnection } from "./UtilsDb";
 import { Database as NFTSchema } from "../schemas/Neos";
 import axios from "axios";
-import { convertToError } from "./NftBlockchain";
+import { convertToError, mintTokens } from "./NftBlockchain";
+import { getCurrentWinners } from "./QuizzesDb";
 
 const connection = getConnection<NFTSchema>("nft");
 const NEO_DATA_TABLE = "neo_data";
@@ -17,6 +18,10 @@ export async function generateNewNeo()
 {
     try
     {
+        if (CURRENT_NEO)
+        {
+            await endCurrentNeo();
+        }
         const today = new Date();
         const twoDays = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 2);
         const nasaRes = await getNeoFromNasa(twoDays);
@@ -35,6 +40,33 @@ export async function generateNewNeo()
     catch(err) {
         CURRENT_NEO = null;
     }
+}
+
+async function endCurrentNeo() {
+  try 
+  {
+    const { data: winners, error } = await getCurrentWinners();
+    if (error) 
+    {
+      throw new Error(error.message);
+    }
+    if (winners && winners.length > 0) 
+    {
+      const neoId = parseInt(getCurrentNeo()!.id);
+      for (let x = 0; x < winners.length; x++) 
+      {
+        const { error } = await mintTokens(winners[x].public_address, neoId, 1);
+        if (error)
+        {
+            throw new Error(error.message);
+        }
+      }
+    }
+  } 
+  catch (err) 
+  {
+    console.error("Failed to award nfts:" + convertToError(err).message);
+  }
 }
 
 export function getCurrentNeo()

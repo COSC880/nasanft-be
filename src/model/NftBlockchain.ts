@@ -8,11 +8,44 @@ import { randomUUID } from "crypto";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const signer = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
 const nasaFT = new Contract(process.env.CONTRACT_ADDRESS!, abi, signer);
+let shouldWait: boolean;
 
-export async function mintTokens(tokenId: number, tokenAmount: number): Promise<ContractResponse<TransferSingleData>> {
+export async function mintTokens(toAddress: string, tokenId: number, tokenAmount: number): Promise<ContractResponse<TransferSingleData>> {
+    return await syncronizeTransactions(nasaFT.mintTokens(toAddress, tokenId, tokenAmount))
+}
+
+export async function burnTokens(fromAddress: string, tokenId: number, tokenAmount: number): Promise<ContractResponse<TransferSingleData>> {
+    return await syncronizeTransactions(nasaFT.burnTokens(fromAddress, tokenId, tokenAmount));
+}
+
+async function syncronizeTransactions(transaction: Promise<any>)
+{
     try
     {
-        const tx = await (await nasaFT.mintTokens(tokenId, tokenAmount)).wait();
+        while(shouldWait)
+        {
+            console.log("Waiting for another transaction to finish...");
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        shouldWait = true;
+        const tx = await (await transaction).wait();
+        return convertToTransferSingleResponse(tx.events[0].args);
+    }
+    catch(err)
+    {
+        const error = convertToError(err);
+        return { status: 500, error: error as Error }
+    }
+    finally {
+        shouldWait = false;
+    }
+}
+
+export async function safeTransfer(toAddress: string, id: number, amount: number): Promise<ContractResponse<TransferSingleData>>
+{
+    try
+    {
+        const tx = await (await nasaFT.safeTransferFrom(signer.address, toAddress, id, amount, [])).wait();
         return convertToTransferSingleResponse(tx.events[0].args);
     }
     catch(err)
@@ -22,25 +55,11 @@ export async function mintTokens(tokenId: number, tokenAmount: number): Promise<
     }
 }
 
-export async function safeTransfer(fromAddress: string, toAddress: string, id: number, amount: number): Promise<ContractResponse<TransferSingleData>>
+export async function safeBatchTransfer(toAddress: string, ids: number[], amounts: number[]): Promise<ContractResponse<TransferBatchData>>
 {
     try
     {
-        const tx = await (await nasaFT.safeTransferFrom(fromAddress, toAddress, id, amount, [])).wait();
-        return convertToTransferSingleResponse(tx.events[0].args);
-    }
-    catch(err)
-    {
-        const error = convertToError(err);
-        return { status: 500, error: error as Error }
-    }
-}
-
-export async function safeBatchTransfer(fromAddress: string, toAddress: string, ids: number[], amounts: number[]): Promise<ContractResponse<TransferBatchData>>
-{
-    try
-    {
-        const tx = await (await nasaFT.safeBatchTransferFrom(fromAddress, toAddress, ids, amounts, [])).wait();
+        const tx = await (await nasaFT.safeBatchTransferFrom(signer.address, toAddress, ids, amounts, [])).wait();
         return convertToTransferBatchResponse(tx.events[0].args);
     }
     catch(err)
