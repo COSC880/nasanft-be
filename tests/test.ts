@@ -8,7 +8,8 @@ import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
 import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../src/model/QuizzesDb";
 import { createAccessToken } from "../src/utils/validate";
-import { Alchemy, Network, Wallet } from "alchemy-sdk";
+import { Alchemy, Network, OwnedNft, Wallet } from "alchemy-sdk";
+import { mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
 const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
@@ -197,11 +198,10 @@ describe("NasaFT", function () {
     
     //Mint Nft
     const mintAmount = 30;
-    const mint = await request(app).post("/api/nft/mint")
-      .set(AUTH_HEADER, authenication!)
-      .send({amount: mintAmount});
+    const mint = await mintTokens(getRandomInt(Number.MAX_SAFE_INTEGER), mintAmount);
 
-    const mintData = mint.body;
+    expect(mint).toHaveProperty("data");
+    const mintData = mint.data;
     expect(mintData).toHaveProperty("operator");
     expect(mintData).toHaveProperty("from");
     expect(mintData).toHaveProperty("to");
@@ -211,14 +211,13 @@ describe("NasaFT", function () {
     //Transfer Single
     const from = owner_public_address;
     const to = test_public_address;
-    const id = mintData.id;
+    const id = mintData!.id;
     const amount = 5;
 
-    const transferSingle = await request(app).put("/api/nft/transfer")
-      .set(AUTH_HEADER, authenication!)
-      .send({fromAddress: from, toAddress: to, id: id, amount: amount});
+    const transferSingle = await safeTransfer(from, to, id, amount);
 
-    const transferSingleData = transferSingle.body;
+    expect(transferSingle).toHaveProperty("data");
+    const transferSingleData = transferSingle.data;
     expect(transferSingleData).toHaveProperty("operator", from);
     expect(transferSingleData).toHaveProperty("from", from);
     expect(transferSingleData).toHaveProperty("to", to);
@@ -227,26 +226,24 @@ describe("NasaFT", function () {
 
     //Mint again
     const mint2Amount = 20;
-    const mint2 = await request(app).post("/api/nft/mint")
-      .set(AUTH_HEADER, authenication!)
-      .send({amount: mint2Amount});
+    const mint2 = await mintTokens(getRandomInt(Number.MAX_SAFE_INTEGER), mint2Amount);
 
-    const mint2Data = mint2.body;
+    expect(mint2).toHaveProperty("data");
+    const mint2Data = mint2.data;
     expect(mint2Data).toHaveProperty("operator");
     expect(mint2Data).toHaveProperty("from");
     expect(mint2Data).toHaveProperty("to");
     expect(mint2Data).toHaveProperty("id");
     expect(mint2Data).toHaveProperty("amount", mint2Amount);
-    expect(mint2Data.id).not.toEqual(mintData.id);
+    expect(mint2Data!.id).not.toEqual(mintData!.id);
 
     //Batch Transfer
-    const ids = [mintData.id, mint2Data.id];
+    const ids = [mintData!.id, mint2Data!.id];
     const amounts = [5, 3];
-    const transferBatch = await request(app).put("/api/nft/transfer/batch")
-      .set(AUTH_HEADER, authenication!)
-      .send({fromAddress: from, toAddress: to, ids: ids, amounts: amounts});
+    const transferBatch = await safeBatchTransfer(from, to, ids, amounts);
 
-    const transferBatchData = transferBatch.body;
+    expect(transferBatch).toHaveProperty("data");
+    const transferBatchData = transferBatch.data;
     expect(transferBatchData).toHaveProperty("operator", from);
     expect(transferBatchData).toHaveProperty("from", from);
     expect(transferBatchData).toHaveProperty("to", to);
@@ -289,14 +286,12 @@ describe("NasaFT", function () {
     const getOwnersNft = await request(app).get("/api/nft/ownedBy/" + to)
       .set(AUTH_HEADER, authenication!);
 
-    const getOwnersNftData = getOwnersNft.body;
-    expect(getOwnersNftData).toHaveProperty("ownedNfts");
-    const ownedNftsLength = getOwnersNftData.ownedNfts.length;
+    expect(getOwnersNft.body).toHaveProperty("ownedNfts");
+    const getOwnersNftData = new Map(getOwnersNft.body.ownedNfts.map((nft: OwnedNft) => [nft.tokenId + ":" + nft.contract.address, nft]));
+    const ownedNftsLength = getOwnersNftData.size;
     expect(ownedNftsLength).toBeGreaterThanOrEqual(2);
-    const nextToLastNft = getOwnersNftData.ownedNfts[ownedNftsLength - 2];
-    expect(nextToLastNft).toHaveProperty("tokenId", ids[0].toString());
-    const lastNft = getOwnersNftData.ownedNfts[ownedNftsLength - 1];
-    expect(lastNft).toHaveProperty("tokenId", ids[1].toString());
+    expect(getOwnersNftData.has(ids[0].toString() + ":" + process.env.CONTRACT_ADDRESS));
+    expect(getOwnersNftData.has(ids[1].toString() + ":" + process.env.CONTRACT_ADDRESS));
   }, 70000);
   it("Invalid Nft id should give an error", async () => {
     const authenication = getUserAccessToken();
@@ -330,4 +325,9 @@ async function saveImage(path: string, buffer: Buffer | undefined)
     }
     fs.writeFileSync(path, buffer);
   }
+}
+
+function getRandomInt(max: number)
+{
+  return Math.floor(Math.random() * max);
 }
