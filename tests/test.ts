@@ -15,6 +15,7 @@ const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
 const owner = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
+const nullAddress =  "0x0000000000000000000000000000000000000000"
 
 describe("NasaFT", function () {
   it("Should be able to get unique nonce.", async () => {
@@ -200,6 +201,13 @@ describe("NasaFT", function () {
 
     const getNftOwnersData = getNftOwners.body;
     expect(getNftOwnersData).toHaveProperty("owners");
+
+    //Remove null address in case tokens were burned
+    const index = getNftOwnersData.owners.indexOf(nullAddress);
+    if (index > -1) {
+      getNftOwnersData.owners.splice(index, 1);
+    }
+
     expect(getNftOwnersData.owners.length).toEqual(1);
     expect(getNftOwnersData.owners[0].toLowerCase()).toEqual(public_address.toLowerCase());
   }, 40000);
