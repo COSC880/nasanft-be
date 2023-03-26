@@ -287,11 +287,11 @@ describe("NasaFT", function () {
       .set(AUTH_HEADER, authenication!);
 
     expect(getOwnersNft.body).toHaveProperty("ownedNfts");
-    const getOwnersNftData = new Map(getOwnersNft.body.ownedNfts.map((nft: OwnedNft) => [nft.tokenId, nft]));
+    const getOwnersNftData = new Map(getOwnersNft.body.ownedNfts.map((nft: OwnedNft) => [nft.tokenId + ":" + nft.contract.address, nft]));
     const ownedNftsLength = getOwnersNftData.size;
     expect(ownedNftsLength).toBeGreaterThanOrEqual(2);
-    expect(getOwnersNftData.has(ids[0].toString()));
-    expect(getOwnersNftData.has(ids[1].toString()));
+    expect(getOwnersNftData.has(ids[0].toString() + ":" + process.env.CONTRACT_ADDRESS));
+    expect(getOwnersNftData.has(ids[1].toString() + ":" + process.env.CONTRACT_ADDRESS));
   }, 70000);
   it("Invalid Nft id should give an error", async () => {
     const authenication = getUserAccessToken();
