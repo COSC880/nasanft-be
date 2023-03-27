@@ -1,22 +1,24 @@
 import { getConnection } from "./UtilsDb";
 import { Database as NFTSchema } from "../schemas/Neos";
 import axios from "axios";
-import { convertToError } from "./NftBlockchain";
+import { convertToError, mintTokens } from "./NftBlockchain";
+import { getCurrentWinners } from "./QuizzesDb";
 
 const connection = getConnection<NFTSchema>("nft");
 const NEO_DATA_TABLE = "neo_data";
 
-var CURRENT_NEO: NEO;
-
-export async function clearNeos()
-{
-    return await connection.from(NEO_DATA_TABLE).delete();
-}
+let CURRENT_NEO: NEO;
+let CURRENT_NEO_TIMEOUT: NodeJS.Timeout | undefined | null;
+generateNewNeo();
 
 export async function generateNewNeo()
 {
     try
     {
+        if (CURRENT_NEO)
+        {
+            await endCurrentNeo();
+        }
         const today = new Date();
         const twoDays = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 2);
         const nasaRes = await getNeoFromNasa(twoDays);
@@ -24,22 +26,64 @@ export async function generateNewNeo()
         const neo = await getRandomNeo(nasaRes.data.near_earth_objects[dateString]);
         const id = neo.id;
         const name = neo.name;
+        //First should be soonest
+        const close_approach_data = neo.close_approach_data[0]; 
+        const dateUTC = close_approach_data.epoch_date_close_approach;
         const size = neo.estimated_diameter.feet.estimated_diameter_max;
-        const range = getClosestApproach(neo.close_approach_data);
-        const velocity = getLargestVelocity(neo.close_approach_data);
-        const insertNeo: InsertNEO = {id: id, name: name,
-            dateUTC: twoDays.getTime(),
+        const range = close_approach_data.miss_distance.miles;
+        const velocity = close_approach_data.relative_velocity.miles_per_hour;
+        const insertNeo: InsertNEO = {id: id, name: name, dateUTC: dateUTC,
             "size (feet)": size, "range(miles)": range, "velocity(MPH)": velocity};
         CURRENT_NEO = (await connection.from(NEO_DATA_TABLE).insert(insertNeo).select().single()).data;
+        CURRENT_NEO_TIMEOUT = setTimeout(generateNewNeo, dateUTC - Date.now());
+        return {status: 200, data: {text: "Success"}};
     }
     catch(err) {
+        console.error(err);
         CURRENT_NEO = null;
+        CURRENT_NEO_TIMEOUT = null;
+        return {status: 500, error: convertToError(err)};
     }
+}
+
+async function endCurrentNeo() {
+  try 
+  {
+    const { data: winners, error } = await getCurrentWinners();
+    if (error) 
+    {
+      throw new Error(error.message);
+    }
+    if (winners && winners.length > 0) 
+    {
+      const neoId = parseInt(getCurrentNeo()!.id);
+      for (let x = 0; x < winners.length; x++) 
+      {
+        const { error } = await mintTokens(winners[x].public_address, neoId, 1);
+        if (error)
+        {
+            throw new Error(error.message);
+        }
+      }
+    }
+  } 
+  catch (err) 
+  {
+    console.error("Failed to award nfts:" + convertToError(err).message);
+  }
 }
 
 export function getCurrentNeo()
 {
     return CURRENT_NEO;
+}
+
+export function stopSetRandomNeoJob()
+{
+    if (CURRENT_NEO_TIMEOUT)
+    {
+        clearTimeout(CURRENT_NEO_TIMEOUT);
+    }
 }
 
 async function getRandomNeo(neos: any[])
@@ -55,34 +99,6 @@ async function getRandomNeo(neos: any[])
         return neosMap.values().next().value;
     }
     throw new Error("Could not get a NEO that hasn't yet been used");
-}
-
-function getClosestApproach(close_approach_data: any[])
-{
-    let closestRange = Number.MAX_VALUE;
-    for (let i=0; i<close_approach_data.length; i++)
-    {
-        let currentRange = parseFloat(close_approach_data[i].miss_distance.miles);
-        if (currentRange < closestRange)
-        {
-            closestRange = currentRange
-        }
-    }
-    return closestRange;
-}
-
-function getLargestVelocity(close_approach_data: any[])
-{
-    let largestVelocity = 0;
-    for (let i=0; i<close_approach_data.length; i++)
-    {
-        let currentVelocity = parseFloat(close_approach_data[i].relative_velocity.miles_per_hour);
-        if (currentVelocity > largestVelocity)
-        {
-            largestVelocity = currentVelocity
-        }
-    }
-    return largestVelocity;
 }
 
 async function getNeoFromNasa(date: Date) {

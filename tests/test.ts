@@ -9,11 +9,13 @@ import { InsertUser, UpdateUser } from "../src/model/UsersDb";
 import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../src/model/QuizzesDb";
 import { createAccessToken } from "../src/utils/validate";
 import { Alchemy, Network, OwnedNft, Wallet } from "alchemy-sdk";
-import { mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
+import { burnTokens, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
+import { stopSetRandomNeoJob } from "../src/model/NeoDB";
 const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
 const owner = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
+const nullAddress =  "0x0000000000000000000000000000000000000000"
 
 describe("NasaFT", function () {
   it("Should be able to get unique nonce.", async () => {
@@ -133,14 +135,50 @@ describe("NasaFT", function () {
     expect(res.status).toEqual(200);
 
     const id = res.body.quiz_id;
+    const currentNeoRes = await request(app).get("/api/neo/")
+      .set(AUTH_HEADER, authenication!);
+    expect(currentNeoRes.body).toHaveProperty("neo");
+    expect(currentNeoRes.body.neo).toHaveProperty("id");
+    expect(parseInt(currentNeoRes.body.neo.id)).not.toEqual(Number.NaN);
+    const currentNeo = currentNeoRes.body.neo;
+    const public_address = testSigner.address;
+
+    //Get Balance
+    const getBalanceBefore = await request(app).post("/api/nft/balance")
+      .set(AUTH_HEADER, authenication!)
+      .send({account: public_address, id: parseInt(currentNeo!.id)});
+
+    const getBalanceBeforeData = getBalanceBefore.body;
+    expect(getBalanceBeforeData).toHaveProperty("balance");
+
+    if (getBalanceBeforeData.balance > 0)
+    {
+      //Burn tokens in case this test ran before
+      const burn = await burnTokens(public_address, parseInt(currentNeo!.id), getBalanceBeforeData.balance);
+      expect(burn).toHaveProperty("data");
+      const burnData = burn.data;
+      expect(burnData).toHaveProperty("operator");
+      expect(burnData).toHaveProperty("from");
+      expect(burnData).toHaveProperty("to");
+      expect(burnData).toHaveProperty("id");
+      expect(burnData).toHaveProperty("amount", getBalanceBeforeData.balance);
+    }
+
+    //Get Balance
+    const getBalanceAfter = await request(app).post("/api/nft/balance")
+      .set(AUTH_HEADER, authenication!)
+      .send({account: public_address, id: parseInt(currentNeo!.id)});
+
+    const getBalanceAfterData = getBalanceAfter.body;
+    expect(getBalanceAfterData).toHaveProperty("balance", 0);
 
     //Add Winner
-    const winnerRes = await request(app).post("/api/quizzes").send({public_address: "0x0000000000000000000000000000000000011111"})
+    const winnerRes = await request(app).post("/api/quizzes").send({public_address: public_address})
       .set(AUTH_HEADER, authenication!)
     expect(winnerRes.status).toEqual(201);
     
     //Add again and make sure wasnt added twice
-    const winner2Res = await request(app).post("/api/quizzes").send({public_address: "0x0000000000000000000000000000000000011111"})
+    const winner2Res = await request(app).post("/api/quizzes").send({public_address: public_address})
       .set(AUTH_HEADER, authenication!);
     expect(winner2Res.status).toEqual(201);
 
@@ -150,15 +188,44 @@ describe("NasaFT", function () {
 
     //Force quiz refresh
     const adminAuthentication = getAdminAccessToken();
-    const res2 = await request(app).put("/api/quizzes/").send({ generateNewNeo: true })
+    const res2 = await request(app).put("/api/quizzes/")
       .set(AUTH_HEADER, adminAuthentication!);
     expect(res2.status).toEqual(200);
 
     const res3 = await request(app).get("/api/quizzes/")
-    .set(AUTH_HEADER, authenication!);
+      .set(AUTH_HEADER, authenication!);
     expect(res3.status).toEqual(200);
     expect(res3.body.quiz_id).not.toEqual(id);
-  });
+
+    //Force Refresh neo
+    const res4 = await request(app).put("/api/neo")
+      .set(AUTH_HEADER, adminAuthentication!);
+    expect(res4.status).toEqual(200);
+
+    const newNeo = await request(app).get("/api/neo")
+      .set(AUTH_HEADER, authenication!);
+    expect(newNeo.body).toHaveProperty("neo");
+    expect(newNeo.body.neo).toHaveProperty("id");
+    expect(parseInt(newNeo.body.neo.id)).not.toEqual(Number.NaN);
+    expect(newNeo.body.neo.id).not.toEqual(currentNeo.id);
+
+    //Check nft was awarded to winner
+    //Get Owners for Nft
+    const getNftOwners = await request(app).get("/api/nft/" + currentNeo!.id)
+      .set(AUTH_HEADER, authenication!);
+
+    const getNftOwnersData = getNftOwners.body;
+    expect(getNftOwnersData).toHaveProperty("owners");
+
+    //Remove null address in case tokens were burned
+    const index = getNftOwnersData.owners.indexOf(nullAddress);
+    if (index > -1) {
+      getNftOwnersData.owners.splice(index, 1);
+    }
+
+    expect(getNftOwnersData.owners.length).toEqual(1);
+    expect(getNftOwnersData.owners[0].toLowerCase()).toEqual(public_address.toLowerCase());
+  }, 40000);
   it("Questions should have the right answers returned", async () => {
     const authenication = getUserAccessToken();
     
@@ -186,8 +253,9 @@ describe("NasaFT", function () {
       });
     });
   });
-  it("Should be able to stop cron job", async () => {
+  it("Should be able to stop quiz and neo job", async () => {
     expect(stopSetRandomQuizJob).not.toThrowError();
+    expect(stopSetRandomNeoJob).not.toThrowError();
   });
   it("Should be able to mint nft tokens, transfer nft tokens, batch transfer nft tokens," + 
       "get balance of nft tokens, get batch balance of nft tokens, get uri of nft tokens," +
@@ -198,7 +266,7 @@ describe("NasaFT", function () {
     
     //Mint Nft
     const mintAmount = 30;
-    const mint = await mintTokens(getRandomInt(Number.MAX_SAFE_INTEGER), mintAmount);
+    const mint = await mintTokens(owner.address, getRandomInt(Number.MAX_SAFE_INTEGER), mintAmount);
 
     expect(mint).toHaveProperty("data");
     const mintData = mint.data;
@@ -214,7 +282,7 @@ describe("NasaFT", function () {
     const id = mintData!.id;
     const amount = 5;
 
-    const transferSingle = await safeTransfer(from, to, id, amount);
+    const transferSingle = await safeTransfer(to, id, amount);
 
     expect(transferSingle).toHaveProperty("data");
     const transferSingleData = transferSingle.data;
@@ -226,7 +294,7 @@ describe("NasaFT", function () {
 
     //Mint again
     const mint2Amount = 20;
-    const mint2 = await mintTokens(getRandomInt(Number.MAX_SAFE_INTEGER), mint2Amount);
+    const mint2 = await mintTokens(owner.address, getRandomInt(Number.MAX_SAFE_INTEGER), mint2Amount);
 
     expect(mint2).toHaveProperty("data");
     const mint2Data = mint2.data;
@@ -240,7 +308,7 @@ describe("NasaFT", function () {
     //Batch Transfer
     const ids = [mintData!.id, mint2Data!.id];
     const amounts = [5, 3];
-    const transferBatch = await safeBatchTransfer(from, to, ids, amounts);
+    const transferBatch = await safeBatchTransfer(to, ids, amounts);
 
     expect(transferBatch).toHaveProperty("data");
     const transferBatchData = transferBatch.data;
@@ -272,15 +340,6 @@ describe("NasaFT", function () {
 
     const getUriData = getUri.body;
     expect(getUriData).toHaveProperty("uri", "https://game.example/api/item/" + id + ".json");
-
-    //Get Owners for Nft
-    const getNftOwners = await request(app).get("/api/nft/" + id)
-      .set(AUTH_HEADER, authenication!);
-
-    const getNftOwnersData = getNftOwners.body;
-    expect(getNftOwnersData).toHaveProperty("owners");
-    expect(getNftOwnersData.owners).toContain(from.toLowerCase());
-    expect(getNftOwnersData.owners).toContain(to?.toLowerCase());
 
     //Get Nfts For Owner
     const getOwnersNft = await request(app).get("/api/nft/ownedBy/" + to)
