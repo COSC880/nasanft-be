@@ -10,7 +10,7 @@ import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../sr
 import { createAccessToken } from "../src/utils/validate";
 import { Alchemy, Network, OwnedNft, Wallet } from "alchemy-sdk";
 import { burnTokens, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
-import { getCurrentNeo } from "../src/model/NeoDB";
+import { stopSetRandomNeoJob } from "../src/model/NeoDB";
 const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
@@ -135,9 +135,12 @@ describe("NasaFT", function () {
     expect(res.status).toEqual(200);
 
     const id = res.body.quiz_id;
-    const currentNeo = getCurrentNeo();
-    expect(currentNeo).toHaveProperty("id");
-    expect(parseInt(currentNeo!.id)).not.toEqual(Number.NaN);
+    const currentNeoRes = await request(app).get("/api/neo/")
+      .set(AUTH_HEADER, authenication!);
+    expect(currentNeoRes.body).toHaveProperty("neo");
+    expect(currentNeoRes.body.neo).toHaveProperty("id");
+    expect(parseInt(currentNeoRes.body.neo.id)).not.toEqual(Number.NaN);
+    const currentNeo = currentNeoRes.body.neo;
     const public_address = testSigner.address;
 
     //Get Balance
@@ -185,14 +188,26 @@ describe("NasaFT", function () {
 
     //Force quiz refresh
     const adminAuthentication = getAdminAccessToken();
-    const res2 = await request(app).put("/api/quizzes/").send({ generateNewNeo: true })
+    const res2 = await request(app).put("/api/quizzes/")
       .set(AUTH_HEADER, adminAuthentication!);
     expect(res2.status).toEqual(200);
 
     const res3 = await request(app).get("/api/quizzes/")
-    .set(AUTH_HEADER, authenication!);
+      .set(AUTH_HEADER, authenication!);
     expect(res3.status).toEqual(200);
     expect(res3.body.quiz_id).not.toEqual(id);
+
+    //Force Refresh neo
+    const res4 = await request(app).put("/api/neo")
+      .set(AUTH_HEADER, adminAuthentication!);
+    expect(res4.status).toEqual(200);
+
+    const newNeo = await request(app).get("/api/neo")
+      .set(AUTH_HEADER, authenication!);
+    expect(newNeo.body).toHaveProperty("neo");
+    expect(newNeo.body.neo).toHaveProperty("id");
+    expect(parseInt(newNeo.body.neo.id)).not.toEqual(Number.NaN);
+    expect(newNeo.body.neo.id).not.toEqual(currentNeo.id);
 
     //Check nft was awarded to winner
     //Get Owners for Nft
@@ -238,8 +253,9 @@ describe("NasaFT", function () {
       });
     });
   });
-  it("Should be able to stop cron job", async () => {
+  it("Should be able to stop quiz and neo job", async () => {
     expect(stopSetRandomQuizJob).not.toThrowError();
+    expect(stopSetRandomNeoJob).not.toThrowError();
   });
   it("Should be able to mint nft tokens, transfer nft tokens, batch transfer nft tokens," + 
       "get balance of nft tokens, get batch balance of nft tokens, get uri of nft tokens," +

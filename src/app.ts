@@ -13,6 +13,7 @@ import usersRouter from './routes/users';
 import tokenRouter from './routes/token';
 import quizzesRouter from "./routes/quizzes";
 import nftRouter from "./routes/nft";
+import neoRouter from "./routes/neo";
 
 const app = express();
 
@@ -32,6 +33,7 @@ apiRouter.use('/users', usersRouter);
 apiRouter.use('/token', tokenRouter);
 apiRouter.use('/quizzes', quizzesRouter);
 apiRouter.use('/nft', nftRouter);
+apiRouter.use('/neo', neoRouter);
 
 app.use('/api', apiRouter);
 
