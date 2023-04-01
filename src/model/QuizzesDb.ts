@@ -1,7 +1,7 @@
 import { getConnection } from "./UtilsDb";
 import { Database as QuizzesSchema } from "../schemas/Quizzes";
 import { CronJob } from "cron";
-import { generateNewNeo, getCurrentNeo } from "./NeoDB";
+import { getCurrentNeo, setImageOfTheDay } from "./NeoDB";
 
 const connection = getConnection<QuizzesSchema>("quiz_information");
 const QUIZZES_TABLE = "quizzes"
@@ -21,6 +21,7 @@ export async function getRandomQuiz()
 
 export async function setRandomQuiz()
 {
+  setImageOfTheDay();
   const res = await connection.from(RANDOM_QUIZ_VIEW).select("*, questions:" + QUESTIONS_TABLE + "!" + QUESTIONS_TABLE +
     "_quiz_id_fkey (*, answers:" + ANSWERS_TABLE + "!" + ANSWERS_TABLE + "_question_id_fkey (*))")
         .filter("quiz_id", CURRENT_RANDOM_QUIZ ? "neq" : "not.is", CURRENT_RANDOM_QUIZ ? CURRENT_RANDOM_QUIZ.quiz_id : null).limit(1).single();

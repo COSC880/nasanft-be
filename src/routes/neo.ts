@@ -1,6 +1,6 @@
 import * as validate from '../utils/validate';
 import express from 'express';
-import { generateNewNeo, getCurrentNeo, getTop10Neos, stopSetRandomNeoJob } from '../model/NeoDB';
+import { generateNewNeo, getCurrentNeo, getImageOfTheDay, getTop10Neos, stopSetRandomNeoJob } from '../model/NeoDB';
 const router = express.Router();
 
 //Force Update Current Neo
@@ -31,6 +31,12 @@ router.get('/range', validate.verifyRequest, async function (req, res, next) {
 //top 10 of velocity
 router.get('/velocity', validate.verifyRequest, async function (req, res, next) {
   const {status, error, data} = await getTop10Neos("velocity", false);
+  res.status(status).json(error ? {text: error.message} : data);
+});
+
+//Get the image of the day
+router.get('/iotd', async function (req, res, next) {
+  const {status, error, data} = getImageOfTheDay();
   res.status(status).json(error ? {text: error.message} : data);
 });
 
