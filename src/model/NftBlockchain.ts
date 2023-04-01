@@ -1,21 +1,42 @@
-import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedBaseNftsResponse, OwnedNft, NftOrdering } from "alchemy-sdk";
+import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedNft } from "alchemy-sdk";
 import {abi} from "./NasaFT.json";
 import { getUser, updateUser } from "./UsersDb";
 import { verifyMessage } from "@ethersproject/wallet";
 import { randomUUID } from "crypto";
+import { NEO } from "./NeoDB";
+import PinataClient, { PinataPinResponse } from "@pinata/sdk";
+import { Attributes, getAttributes, generateImageFromAttributes } from "../utils/attributes";
+import { Readable } from "stream";
 
 //Connect to contract
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const signer = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
 const nasaFT = new Contract(process.env.CONTRACT_ADDRESS!, abi, signer);
+const pinata = new PinataClient({ pinataApiKey: process.env.PINATA_API_KEY!, pinataSecretApiKey: process.env.PINATA_API_SECRET});
 let shouldWait: boolean;
 
-export async function mintTokens(toAddress: string, tokenId: number, tokenAmount: number): Promise<ContractResponse<TransferSingleData>> {
-    return await syncronizeTransactions(nasaFT.mintTokens(toAddress, tokenId, tokenAmount))
+export async function mintTokens(tokenId: number, tokenAmount: number, uri: string): Promise<ContractResponse<TransferSingleData>> {
+    const tx = await syncronizeTransactions(nasaFT.mintTokens(tokenId, tokenAmount, uri));
+    if (!tx.error)
+    {
+        return convertToTransferSingleResponse(tx.events[0].args);
+    }
+    else
+    {
+        return {status: tx.status, error: convertToError(tx.error)};
+    }
 }
 
 export async function burnTokens(fromAddress: string, tokenId: number, tokenAmount: number): Promise<ContractResponse<TransferSingleData>> {
-    return await syncronizeTransactions(nasaFT.burnTokens(fromAddress, tokenId, tokenAmount));
+    const tx = await syncronizeTransactions(nasaFT.burnTokens(fromAddress, tokenId, tokenAmount));
+    if (!tx.error)
+    {
+        return convertToTransferSingleResponse(tx.events[0].args);
+    }
+    else
+    {
+        return {status: tx.status, error: convertToError(tx.error)};
+    }
 }
 
 async function syncronizeTransactions(transaction: Promise<any>)
@@ -28,8 +49,7 @@ async function syncronizeTransactions(transaction: Promise<any>)
             await new Promise(r => setTimeout(r, 1000));
         }
         shouldWait = true;
-        const tx = await (await transaction).wait();
-        return convertToTransferSingleResponse(tx.events[0].args);
+        return await (await transaction).wait();
     }
     catch(err)
     {
@@ -169,6 +189,19 @@ export async function verifyNonce(public_address: string, signed_nonce: string):
     }
 }
 
+export async function getNftMetadata(neo: NEO): Promise<PinataPinResponse | undefined>
+{
+    const attributes = getAttributes(neo);
+    const image = await generateImageFromAttributes(attributes);
+    if (image)
+    {
+        const imageOnIpfs = await pinata.pinFileToIPFS(Readable.from(image!), {pinataMetadata: {
+            name: attributes.size + "_" + attributes.range + "_" + attributes.velocity + ".png"
+        }});
+        return await pinata.pinJSONToIPFS({id: neo.id, image: imageOnIpfs.IpfsHash, attributes })
+    }
+}
+
 function convertToTransferSingleResponse(event: any) : ContractResponse<TransferSingleData>
 {
     const transferData = convertToTransferData(event);
@@ -264,3 +297,5 @@ type BalanceBatchData = {
 type UriData = {
     uri: string
 }
+
+type MetaData = {id: number, image: string } & Attributes;

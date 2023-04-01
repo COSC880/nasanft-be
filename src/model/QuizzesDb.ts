@@ -58,3 +58,4 @@ export async function setWinner(public_address: string)
 export type Answer = undefined | null | QuizzesSchema["quiz_information"]["Tables"]["quiz_answers"]["Row"];
 export type Question = undefined | null | QuizzesSchema["quiz_information"]["Tables"]["quiz_questions"]["Row"] & {answers: Answer[]}
 export type Quiz = undefined | null | QuizzesSchema["quiz_information"]["Tables"]["quiz_questions"]["Row"] & {questions: Question[]}
+export type Winner = QuizzesSchema["quiz_information"]["Tables"]["winners"]["Row"];
