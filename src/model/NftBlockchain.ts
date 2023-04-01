@@ -9,7 +9,7 @@ import { Attributes, getAttributes, generateImageFromAttributes } from "../utils
 import { Readable } from "stream";
 
 //Connect to contract
-const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
+const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network, maxRetries: 10});
 const signer = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
 const nasaFT = new Contract(process.env.CONTRACT_ADDRESS!, abi, signer);
 const pinata = new PinataClient({ pinataApiKey: process.env.PINATA_API_KEY!, pinataSecretApiKey: process.env.PINATA_API_SECRET});
