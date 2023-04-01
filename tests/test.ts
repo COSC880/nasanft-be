@@ -252,6 +252,32 @@ describe("NasaFT", function () {
     expect(currentNeoNft!.rawMetadata!.attributes).toHaveProperty("range");
     expect(currentNeoNft!.rawMetadata!.attributes).toHaveProperty("velocity");
   }, 40000);
+  it("Should be able to get the top 10 size, range and velocity", async () => {
+    const authenication = getUserAccessToken();
+    const sizeRes = await request(app).get("/api/neo/size")
+      .set(AUTH_HEADER, authenication!);
+    expect(sizeRes.status).toEqual(200);
+    expect(sizeRes.body).toHaveProperty("length");
+    expect(sizeRes.body.length).toBeLessThanOrEqual(10);
+    expect(sizeRes.body[0]).toHaveProperty("size_feet");
+    expect(sizeRes.body[0].size_feet).toBeGreaterThan(sizeRes.body[1].size_feet);
+
+    const rangeRes = await request(app).get("/api/neo/range")
+      .set(AUTH_HEADER, authenication!);
+    expect(rangeRes.status).toEqual(200);
+    expect(rangeRes.body).toHaveProperty("length");
+    expect(rangeRes.body.length).toBeLessThanOrEqual(10);
+    expect(rangeRes.body[0]).toHaveProperty("range_miles");
+    expect(rangeRes.body[0].size_feet).toBeGreaterThan(rangeRes.body[1].size_feet);
+
+    const velocityRes = await request(app).get("/api/neo/velocity")
+      .set(AUTH_HEADER, authenication!);
+    expect(velocityRes.status).toEqual(200);
+    expect(velocityRes.body).toHaveProperty("length");
+    expect(velocityRes.body.length).toBeLessThanOrEqual(10);
+    expect(velocityRes.body[0]).toHaveProperty("velocity_mph");
+    expect(velocityRes.body[0].size_feet).toBeGreaterThan(velocityRes.body[1].size_feet);
+  });
   it("Questions should have the right answers returned", async () => {
     const authenication = getUserAccessToken();
     
@@ -292,7 +318,7 @@ describe("NasaFT", function () {
     
     //Mint Nft
     const id = getRandomInt(Number.MAX_SAFE_INTEGER);
-    const metadata = await getNftMetadata({id: id.toString(), dateUTC: null, name: "test neo", "size (feet)": 500, "range(miles)": 13000, "velocity(MPH)": 5000});
+    const metadata = await getNftMetadata({id: id.toString(), dateUTC: null, name: "test neo", "size_feet": 500, "range_miles": 13000, "velocity_mph": 5000});
     expect(metadata).toHaveProperty("IpfsHash");
 
     const mintAmount = 30;
@@ -323,7 +349,7 @@ describe("NasaFT", function () {
 
     //Mint again
     const id2 = getRandomInt(Number.MAX_SAFE_INTEGER);
-    const metadata2 = await getNftMetadata({id: id.toString(), dateUTC: null, name: "test neo 2", "size (feet)": 500, "range(miles)": 13000, "velocity(MPH)": 5000});
+    const metadata2 = await getNftMetadata({id: id.toString(), dateUTC: null, name: "test neo 2", "size_feet": 500, "range_miles": 13000, "velocity_mph": 5000});
     expect(metadata2).toHaveProperty("IpfsHash");
     const mint2Amount = 20;
     const mint2 = await mintTokens(id2, mint2Amount, metadata2?.IpfsHash!);

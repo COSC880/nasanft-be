@@ -40,9 +40,9 @@ export async function generateImageFromAttributes(attributes: Attributes)
 
 export function getAttributes(neo: NEO): Attributes
 {
-    const sizeAttribute = getAttribute(neo["size (feet)"]!, SIZE_25_PERCENTILE, SIZE_75_PERCENTILE, SIZE_VALUES) as Size;
-    const rangeAttribute = getAttribute(neo["range(miles)"], RANGE_25_PERCENTILE, RANGE_75_PERCENTILE, RANGE_VALUES) as Range;
-    const velocityAttribute = getAttribute(neo["velocity(MPH)"], VELOCITY_25_PERCENTILE, VELOCITY_75_PERCENTILE, VELOCITY_VALUES) as Velocity;
+    const sizeAttribute = getAttribute(neo["size_feet"], SIZE_25_PERCENTILE, SIZE_75_PERCENTILE, SIZE_VALUES) as Size;
+    const rangeAttribute = getAttribute(neo["range_miles"], RANGE_25_PERCENTILE, RANGE_75_PERCENTILE, RANGE_VALUES) as Range;
+    const velocityAttribute = getAttribute(neo["velocity_mph"], VELOCITY_25_PERCENTILE, VELOCITY_75_PERCENTILE, VELOCITY_VALUES) as Velocity;
     return {size: sizeAttribute, range: rangeAttribute, velocity: velocityAttribute}
 }
 
