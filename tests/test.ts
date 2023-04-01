@@ -1,6 +1,6 @@
 import request from "supertest";
 import app from "../src/app";
-import generateImageFromAttributes from "../src/utils/generateImage";
+import {generateImageFromAttributes} from "../src/utils/attributes";
 import fs from "fs";
 import path from "path";
 import { PNG } from "pngjs";
@@ -8,9 +8,10 @@ import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
 import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../src/model/QuizzesDb";
 import { createAccessToken } from "../src/utils/validate";
-import { Alchemy, Network, OwnedNft, Wallet } from "alchemy-sdk";
-import { burnTokens, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
+import { Alchemy, Network, Nft, OwnedNft, Wallet } from "alchemy-sdk";
+import { burnTokens, getNftMetadata, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
 import { stopSetRandomNeoJob } from "../src/model/NeoDB";
+import PinataClient from "@pinata/sdk";
 const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
@@ -27,6 +28,11 @@ describe("NasaFT", function () {
     expect(nonce2.status).toEqual(200);
     expect(nonce2.body).toHaveProperty("nonce");
     expect(nonce1.body.nonce).not.toEqual(nonce2.body.nonce);
+  });
+  it("Should be able to authenticate with pinata.", async () => {
+    const pinata = new PinataClient({ pinataApiKey: process.env.PINATA_API_KEY!, pinataSecretApiKey: process.env.PINATA_API_SECRET});
+    const pinataRes = await pinata.testAuthentication();
+    expect(pinataRes.authenticated).toBe(true);
   });
   it("Shouldnt be able to get access token without refresh token.", async () => {
     await request(app).post("/api/token/refresh").expect(401);
@@ -73,8 +79,8 @@ describe("NasaFT", function () {
     expect(userRes.body).toHaveProperty('public_address', test_public_address);
   }, 10000);
   it("Test generating nft image", async () => {
-    const expectedImage = PNG.sync.read(fs.readFileSync(path.join(__dirname, "baselineImages", "average_far_small.png")));
-    const actualBuffer = await generateImageFromAttributes("background", "average", "far", "small");
+    const expectedImage = PNG.sync.read(fs.readFileSync(path.join(__dirname, "baselineImages", "small_far_average.png")));
+    const actualBuffer = await generateImageFromAttributes({size: "small", range: "far", velocity: "average"});
     const actualImage = PNG.sync.read(actualBuffer!);
     const {width, height} = expectedImage;
     const diffImage = new PNG({width, height});
@@ -217,6 +223,7 @@ describe("NasaFT", function () {
     const getNftOwnersData = getNftOwners.body;
     expect(getNftOwnersData).toHaveProperty("owners");
 
+    /* This api only gets the owners a long time after the nft is minted
     //Remove null address in case tokens were burned
     const index = getNftOwnersData.owners.indexOf(nullAddress);
     if (index > -1) {
@@ -225,6 +232,25 @@ describe("NasaFT", function () {
 
     expect(getNftOwnersData.owners.length).toEqual(1);
     expect(getNftOwnersData.owners[0].toLowerCase()).toEqual(public_address.toLowerCase());
+    */
+    //Get Nfts For Owner
+    const getOwnersNft = await request(app).get("/api/nft/ownedBy/" + public_address)
+      .set(AUTH_HEADER, authenication!);
+
+    expect(getOwnersNft.body).toHaveProperty("ownedNfts");
+    const getOwnersNftData = new Map<string, OwnedNft>(getOwnersNft.body.ownedNfts.map((nft: OwnedNft) => [nft.tokenId + ":" + nft.contract.address, nft]));
+    const ownedNftsLength = getOwnersNftData.size;
+    expect(ownedNftsLength).toBeGreaterThanOrEqual(1);
+    const currentNeoKey = currentNeo.id + ":" + process.env.CONTRACT_ADDRESS!.toLowerCase();
+    expect(getOwnersNftData.has(currentNeoKey)).toEqual(true);
+    const currentNeoNft = getOwnersNftData.get(currentNeoKey);
+    expect(currentNeoNft).toHaveProperty("rawMetadata");
+    expect(currentNeoNft!.rawMetadata).toHaveProperty("id");
+    expect(currentNeoNft!.rawMetadata).toHaveProperty("image");
+    expect(currentNeoNft!.rawMetadata).toHaveProperty("attributes");
+    expect(currentNeoNft!.rawMetadata!.attributes).toHaveProperty("size");
+    expect(currentNeoNft!.rawMetadata!.attributes).toHaveProperty("range");
+    expect(currentNeoNft!.rawMetadata!.attributes).toHaveProperty("velocity");
   }, 40000);
   it("Questions should have the right answers returned", async () => {
     const authenication = getUserAccessToken();
@@ -265,8 +291,12 @@ describe("NasaFT", function () {
     const test_public_address = await testSigner.getAddress();
     
     //Mint Nft
+    const id = getRandomInt(Number.MAX_SAFE_INTEGER);
+    const metadata = await getNftMetadata({id: id.toString(), dateUTC: null, name: "test neo", "size (feet)": 500, "range(miles)": 13000, "velocity(MPH)": 5000});
+    expect(metadata).toHaveProperty("IpfsHash");
+
     const mintAmount = 30;
-    const mint = await mintTokens(owner.address, getRandomInt(Number.MAX_SAFE_INTEGER), mintAmount);
+    const mint = await mintTokens(id, mintAmount, metadata?.IpfsHash!);
 
     expect(mint).toHaveProperty("data");
     const mintData = mint.data;
@@ -279,7 +309,6 @@ describe("NasaFT", function () {
     //Transfer Single
     const from = owner_public_address;
     const to = test_public_address;
-    const id = mintData!.id;
     const amount = 5;
 
     const transferSingle = await safeTransfer(to, id, amount);
@@ -293,8 +322,11 @@ describe("NasaFT", function () {
     expect(transferSingleData).toHaveProperty("amount", amount);
 
     //Mint again
+    const id2 = getRandomInt(Number.MAX_SAFE_INTEGER);
+    const metadata2 = await getNftMetadata({id: id.toString(), dateUTC: null, name: "test neo 2", "size (feet)": 500, "range(miles)": 13000, "velocity(MPH)": 5000});
+    expect(metadata2).toHaveProperty("IpfsHash");
     const mint2Amount = 20;
-    const mint2 = await mintTokens(owner.address, getRandomInt(Number.MAX_SAFE_INTEGER), mint2Amount);
+    const mint2 = await mintTokens(id2, mint2Amount, metadata2?.IpfsHash!);
 
     expect(mint2).toHaveProperty("data");
     const mint2Data = mint2.data;
@@ -339,7 +371,7 @@ describe("NasaFT", function () {
       .set(AUTH_HEADER, authenication!)
 
     const getUriData = getUri.body;
-    expect(getUriData).toHaveProperty("uri", "https://game.example/api/item/" + id + ".json");
+    expect(getUriData).toHaveProperty("uri");
 
     //Get Nfts For Owner
     const getOwnersNft = await request(app).get("/api/nft/ownedBy/" + to)

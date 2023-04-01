@@ -1,13 +1,13 @@
 import { getConnection } from "./UtilsDb";
 import { Database as NFTSchema } from "../schemas/Neos";
 import axios from "axios";
-import { convertToError, mintTokens } from "./NftBlockchain";
-import { getCurrentWinners } from "./QuizzesDb";
+import { convertToError, getNftMetadata, mintTokens, safeTransfer } from "./NftBlockchain";
+import { getCurrentWinners, Winner } from "./QuizzesDb";
 
 const connection = getConnection<NFTSchema>("nft");
 const NEO_DATA_TABLE = "neo_data";
 
-let CURRENT_NEO: NEO;
+let CURRENT_NEO: OptionalNEO;
 let CURRENT_NEO_TIMEOUT: NodeJS.Timeout | undefined | null;
 generateNewNeo();
 
@@ -47,30 +47,60 @@ export async function generateNewNeo()
 }
 
 async function endCurrentNeo() {
-  try 
-  {
-    const { data: winners, error } = await getCurrentWinners();
-    if (error) 
+    try 
     {
-      throw new Error(error.message);
-    }
-    if (winners && winners.length > 0) 
-    {
-      const neoId = parseInt(getCurrentNeo()!.id);
-      for (let x = 0; x < winners.length; x++) 
-      {
-        const { error } = await mintTokens(winners[x].public_address, neoId, 1);
-        if (error)
+        const { data: winners, error } = await getCurrentWinners();
+        if (error) 
         {
             throw new Error(error.message);
         }
-      }
+        if (winners && winners.length > 0) 
+        {
+            const neo = getCurrentNeo();
+            if (neo)
+            {
+                const error = await awardWinners(neo, winners);
+                if (error)
+                {
+                    throw error;
+                }
+            }
+            else
+            {
+                throw new Error("Current Neo not set");
+            }
+        }
     }
-  } 
-  catch (err) 
-  {
-    console.error("Failed to award nfts:" + convertToError(err).message);
-  }
+    catch (err) 
+    {
+        console.log("Failed to award nfts:" + convertToError(err).message);
+    }
+}
+
+export async function awardWinners(neo: NEO, winners: Winner[]) : Promise<Error | undefined>
+{
+    const metadata = await getNftMetadata(neo);
+    if (metadata && metadata.IpfsHash)
+    {
+        const tokenId = parseInt(neo.id);
+        const {error} = await mintTokens(tokenId, winners.length, metadata.IpfsHash);
+        if (error)
+        {
+            return error;
+        }
+        for (let x = 0; x < winners.length; x++) 
+        {
+            const { error } = await safeTransfer(winners[x].public_address, tokenId, 1);
+            if (error)
+            {
+                return error;
+            }
+        }
+    }
+    else
+    {
+        return new Error("Could not upload metadata to ipfs");
+    }
 }
 
 export function getCurrentNeo()
@@ -121,4 +151,5 @@ function formatDate(date: Date)
 
 export type InsertNEO = NFTSchema["nft"]["Tables"]["neo_data"]["Insert"];
 export type UpdateNEO = NFTSchema["nft"]["Tables"]["neo_data"]["Update"];
-export type NEO = undefined | null | NFTSchema["nft"]["Tables"]["neo_data"]["Row"];
+export type NEO = NFTSchema["nft"]["Tables"]["neo_data"]["Row"];
+export type OptionalNEO = NEO | undefined | null;

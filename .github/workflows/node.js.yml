@@ -21,6 +21,8 @@ jobs:
       ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
       TEST_WALLET_PRIVATE_KEY: ${{ secrets.TEST_WALLET_PRIVATE_KEY }}
       NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+      PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
+      PINATA_API_SECRET: ${{ secrets.PINATA_API_SECRET }}
 
   node_18:
     needs: node_16
@@ -34,3 +36,5 @@ jobs:
       ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
       TEST_WALLET_PRIVATE_KEY: ${{ secrets.TEST_WALLET_PRIVATE_KEY }}
       NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+      PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
+      PINATA_API_SECRET: ${{ secrets.PINATA_API_SECRET }}
