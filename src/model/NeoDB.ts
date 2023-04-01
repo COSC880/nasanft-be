@@ -33,7 +33,7 @@ export async function generateNewNeo()
         const range = close_approach_data.miss_distance.miles;
         const velocity = close_approach_data.relative_velocity.miles_per_hour;
         const insertNeo: InsertNEO = {id: id, name: name, dateUTC: dateUTC,
-            "size (feet)": size, "range(miles)": range, "velocity(MPH)": velocity};
+            "size_feet": size, "range_miles": range, "velocity_mph": velocity};
         CURRENT_NEO = (await connection.from(NEO_DATA_TABLE).insert(insertNeo).select().single()).data;
         CURRENT_NEO_TIMEOUT = setTimeout(generateNewNeo, dateUTC - Date.now());
         return {status: 200, data: {text: "Success"}};
@@ -106,6 +106,12 @@ export async function awardWinners(neo: NEO, winners: Winner[]) : Promise<Error 
 export function getCurrentNeo()
 {
     return CURRENT_NEO;
+}
+
+export function getTop10Neos(attribute: "size" | "range" | "velocity", ascending: boolean)
+{
+    const columnName: (string & keyof NEO) = attribute === "size" ? "size_feet"  : attribute === "range" ? "range_miles" : "velocity_mph";
+    return connection.from(NEO_DATA_TABLE).select("*").order(columnName!, {ascending: ascending}).limit(10);
 }
 
 export function stopSetRandomNeoJob()
