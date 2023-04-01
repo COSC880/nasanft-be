@@ -73,7 +73,7 @@ async function endCurrentNeo() {
     }
     catch (err) 
     {
-        console.error("Failed to award nfts:" + convertToError(err).message);
+        console.log("Failed to award nfts:" + convertToError(err).message);
     }
 }
 
