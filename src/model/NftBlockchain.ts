@@ -1,4 +1,4 @@
-import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedNft } from "alchemy-sdk";
+import { Alchemy, Network, BigNumber, Wallet, Contract, GetOwnersForNftResponse, OwnedNft, Nft } from "alchemy-sdk";
 import {abi} from "./NasaFT.json";
 import { getUser, updateUser } from "./UsersDb";
 import { verifyMessage } from "@ethersproject/wallet";
@@ -155,6 +155,20 @@ export async function getOwnedNfts(account: string): Promise<ContractResponse<{o
             ownedNfts.push(nft);
         }
         return { status: 200, data: { ownedNfts: ownedNfts } }
+    }
+    catch(err)
+    {
+        const error = convertToError(err);
+        return { status: 500, error: error }
+    }
+}
+
+export async function getNftinfo(id: number): Promise<ContractResponse<Nft>>
+{
+    try
+    {
+        const nft = await alchemy.nft.getNftMetadata(process.env.CONTRACT_ADDRESS!, id, {}); 
+        return { status: 200, data: nft }
     }
     catch(err)
     {

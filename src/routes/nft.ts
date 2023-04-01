@@ -35,4 +35,10 @@ router.get('/ownedBy/:account', validate.verifyRequest, async function (req, res
   res.status(status).json(error ? {text: error.message} : data);
 });
 
+//Get Nft Info for a single Nft
+router.get('/info/:id', validate.verifyRequest, async function (req, res, next) {
+  const {error, status, data} = await NftBlockchain.getNftinfo(parseInt(req.params.id));
+  res.status(status).json(error ? {text: error.message} : data);
+});
+
 export default router;
