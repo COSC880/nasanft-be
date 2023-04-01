@@ -10,7 +10,7 @@ import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../sr
 import { createAccessToken } from "../src/utils/validate";
 import { Alchemy, Network, Nft, OwnedNft, Wallet } from "alchemy-sdk";
 import { burnTokens, getNftMetadata, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
-import { stopSetRandomNeoJob } from "../src/model/NeoDB";
+import { setImageOfTheDay, stopSetRandomNeoJob } from "../src/model/NeoDB";
 import PinataClient from "@pinata/sdk";
 const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
@@ -268,7 +268,7 @@ describe("NasaFT", function () {
     expect(rangeRes.body).toHaveProperty("length");
     expect(rangeRes.body.length).toBeLessThanOrEqual(10);
     expect(rangeRes.body[0]).toHaveProperty("range_miles");
-    expect(rangeRes.body[0].size_feet).toBeGreaterThan(rangeRes.body[1].size_feet);
+    expect(rangeRes.body[0].range_miles).toBeLessThan(rangeRes.body[1].range_miles);
 
     const velocityRes = await request(app).get("/api/neo/velocity")
       .set(AUTH_HEADER, authenication!);
@@ -276,7 +276,7 @@ describe("NasaFT", function () {
     expect(velocityRes.body).toHaveProperty("length");
     expect(velocityRes.body.length).toBeLessThanOrEqual(10);
     expect(velocityRes.body[0]).toHaveProperty("velocity_mph");
-    expect(velocityRes.body[0].size_feet).toBeGreaterThan(velocityRes.body[1].size_feet);
+    expect(velocityRes.body[0].velocity_mph).toBeGreaterThan(velocityRes.body[1].velocity_mph);
   });
   it("Questions should have the right answers returned", async () => {
     const authenication = getUserAccessToken();
@@ -414,9 +414,19 @@ describe("NasaFT", function () {
     const authenication = getUserAccessToken();
     //Verify invalid id gets error
     const getUri = await request(app).get("/api/nft/uri/" + "I am not a number")
-    .set(AUTH_HEADER, authenication!)
+    .set(AUTH_HEADER, authenication!);
     expect(getUri.status).toEqual(500);
   }, 10000);
+  it("Should be able to get a new image of the day", async () => {
+    const iotdRes = await request(app).get("/api/neo/iotd");
+    expect(iotdRes.status).toEqual(200);
+    expect(iotdRes.body).toHaveProperty("url");
+    await setImageOfTheDay();
+    const iotdRes2 = await request(app).get("/api/neo/iotd");
+    expect(iotdRes.status).toEqual(200);
+    expect(iotdRes.body).toHaveProperty("url");
+    expect(iotdRes2.body.url).not.toEqual(iotdRes.body.url);
+  });
 });
 
 function getUserAccessToken() 

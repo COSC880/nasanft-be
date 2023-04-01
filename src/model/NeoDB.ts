@@ -9,6 +9,7 @@ const NEO_DATA_TABLE = "neo_data";
 
 let CURRENT_NEO: OptionalNEO;
 let CURRENT_NEO_TIMEOUT: NodeJS.Timeout | undefined | null;
+let CURRENT_IMAGE_OF_THE_DAY: any;
 generateNewNeo();
 
 export async function generateNewNeo()
@@ -112,6 +113,53 @@ export function getTop10Neos(attribute: "size" | "range" | "velocity", ascending
 {
     const columnName: (string & keyof NEO) = attribute === "size" ? "size_feet"  : attribute === "range" ? "range_miles" : "velocity_mph";
     return connection.from(NEO_DATA_TABLE).select("*").order(columnName!, {ascending: ascending}).limit(10);
+}
+
+export function getImageOfTheDay()
+{
+    return CURRENT_IMAGE_OF_THE_DAY ? { status: 200, data: CURRENT_IMAGE_OF_THE_DAY }
+      : { status: 500, error: new Error("Image of the day is not set") };
+}
+
+export async function setImageOfTheDay() 
+{
+    const oldImageOfTheDayUrl = CURRENT_IMAGE_OF_THE_DAY?.url;
+    CURRENT_IMAGE_OF_THE_DAY = undefined;
+    let endDate = new Date();
+    try
+    {
+        while(!CURRENT_IMAGE_OF_THE_DAY)
+        {
+            let startDate = new Date(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate() - 14);
+            const res = await axios.get("https://api.nasa.gov/planetary/apod", {params: { 
+                start_date: formatDate(startDate), 
+                end_date: formatDate(endDate),
+                api_key: process.env.NASA_API_KEY
+            }});
+            if (res && res.data)
+            {
+                for (let x=res.data.length-1;x>=0;x--)
+                {
+                    if (res.data[x].media_type === "image" && !res.data[x].copyright 
+                          && res.data[x].url && res.data[x].url !== oldImageOfTheDayUrl)
+                    {
+                        CURRENT_IMAGE_OF_THE_DAY = res.data[x];
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                console.log("Could not set the image of the day");
+                break;
+            }
+            endDate = startDate;
+        }
+    }
+    catch (error)
+    {
+        console.log("Could not set the image of the day: " + error);
+    }
 }
 
 export function stopSetRandomNeoJob()
