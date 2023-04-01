@@ -233,6 +233,20 @@ describe("NasaFT", function () {
     expect(getNftOwnersData.owners.length).toEqual(1);
     expect(getNftOwnersData.owners[0].toLowerCase()).toEqual(public_address.toLowerCase());
     */
+
+    //Get Nft Info
+    const getNftInfo = await request(app).get("/api/nft/info/" + currentNeo!.id)
+      .set(AUTH_HEADER, authenication!);
+    expect(getNftInfo.status).toEqual(200);
+    const getNftInfoData = getNftInfo.body;
+    expect(getNftInfoData).toHaveProperty("rawMetadata");
+    expect(getNftInfoData!.rawMetadata).toHaveProperty("id");
+    expect(getNftInfoData!.rawMetadata).toHaveProperty("image");
+    expect(getNftInfoData!.rawMetadata).toHaveProperty("attributes");
+    expect(getNftInfoData!.rawMetadata!.attributes).toHaveProperty("size");
+    expect(getNftInfoData!.rawMetadata!.attributes).toHaveProperty("range");
+    expect(getNftInfoData!.rawMetadata!.attributes).toHaveProperty("velocity");
+
     //Get Nfts For Owner
     const getOwnersNft = await request(app).get("/api/nft/ownedBy/" + public_address)
       .set(AUTH_HEADER, authenication!);
