@@ -11,6 +11,7 @@ import { createAccessToken } from "../src/utils/validate";
 import { Alchemy, Network, Nft, OwnedNft, Wallet } from "alchemy-sdk";
 import { burnTokens, getNftMetadata, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
 import { stopSetRandomNeoJob } from "../src/model/NeoDB";
+import PinataClient from "@pinata/sdk";
 const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
@@ -27,6 +28,11 @@ describe("NasaFT", function () {
     expect(nonce2.status).toEqual(200);
     expect(nonce2.body).toHaveProperty("nonce");
     expect(nonce1.body.nonce).not.toEqual(nonce2.body.nonce);
+  });
+  it("Should be able to authenticate with pinata.", async () => {
+    const pinata = new PinataClient({ pinataApiKey: process.env.PINATA_API_KEY!, pinataSecretApiKey: process.env.PINATA_API_SECRET});
+    const pinataRes = await pinata.testAuthentication();
+    expect(pinataRes.authenticated).toBe(true);
   });
   it("Shouldnt be able to get access token without refresh token.", async () => {
     await request(app).post("/api/token/refresh").expect(401);
