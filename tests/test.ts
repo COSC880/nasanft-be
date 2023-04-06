@@ -77,6 +77,7 @@ describe("NasaFT", function () {
     //Test we can get the public address out of the access token
     const userRes = await request(app).get("/api/users/").set(AUTH_HEADER, refreshRes.body.accessToken);
     expect(userRes.body).toHaveProperty('public_address', test_public_address);
+    expect(userRes.body).toHaveProperty('overall_rank');
   }, 10000);
   it("Test generating nft image", async () => {
     const expectedImage = PNG.sync.read(fs.readFileSync(path.join(__dirname, "baselineImages", "small_far_average.png")));
@@ -122,6 +123,7 @@ describe("NasaFT", function () {
     const adminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, adminLogin!);
     expect(nonAdminRes.status).toEqual(403);
     expect(adminRes.status).toEqual(200);
+    expect(adminRes.body).toHaveProperty('overall_rank');
   });
   it("Should be able to delete user", async () => {
     const authenication = getUserAccessToken();
