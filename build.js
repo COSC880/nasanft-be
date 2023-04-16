@@ -7,9 +7,13 @@ main();
 
 function main()
 {
-    preBuild();
-    build();
-    postBuild();
+    //Dont build if production and already built
+    if (needsBuild())
+    {
+        preBuild();
+        build();
+        postBuild();
+    }
 }
 
 function preBuild()
@@ -25,6 +29,11 @@ function build()
 function postBuild()
 {
     copyStaticFiles();
+}
+
+function needsBuild()
+{
+    return process.env.NODE_ENV !== "production" || !fse.pathExists("dist/production")
 }
 
 //STATIC FILES
