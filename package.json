@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "prestart": "npm run build",
-    "start": "npm run startServer",
-    "startServer": "dotenv cross-var node ./dist/%NODE_ENV%/bin/www",
+    "start": "dotenv cross-var node ./dist/%NODE_ENV%/bin/www",
     "build": "node build.js",
     "test": "jest --coverage"
   },
