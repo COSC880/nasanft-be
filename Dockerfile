@@ -10,8 +10,11 @@ COPY . /nasanft-be
 # Install the application dependencies
 RUN npm install
 
+# Build the application
+RUN npm run build
+
 # Expose port 3000
 EXPOSE 3000
 
 # Define the entry point for the container
-CMD ["npm", "start"]
+CMD ["npm", "run" "startServer"]
