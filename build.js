@@ -33,7 +33,7 @@ function postBuild()
 
 function needsBuild()
 {
-    return process.env.NODE_ENV !== "production" || !fse.pathExists("dist/production")
+    return process.env.NODE_ENV !== "production" || !fse.pathExistsSync("dist/production")
 }
 
 //STATIC FILES
