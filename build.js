@@ -1,20 +1,22 @@
+const util = require('node:util');
 const execSync = require("child_process").execSync;
+const exec = util.promisify(require('node:child_process').exec);
 const fse = require("fs-extra");
 require('dotenv').config();
 const generatedSchemasDir = "src/schemas"
 
 main();
 
-function main()
+async function main()
 {
-    preBuild();
+    await preBuild();
     build();
     postBuild();
 }
 
-function preBuild()
+async function preBuild()
 {
-    generateTypes();
+    await generateTypes();
 }
 
 function build()
@@ -35,16 +37,19 @@ async function copyStaticFiles()
 }
 
 //GENERATE TYPES
-function generateTypes()
+async function generateTypes()
 {
     fse.mkdirpSync(generatedSchemasDir, {recursive: true});
-    generateType("users_data", "Users");    
-    generateType("quiz_information", "Quizzes");
-    generateType("nft", "Neos");
+    const output = await Promise.all([
+        generateType("users_data", "Users"),   
+        generateType("quiz_information", "Quizzes"),
+        generateType("nft", "Neos")
+    ]);
+    console.log(output);
 }
 
 function generateType(schemaName, filename)
 {
-    execSync("npx supabase gen types typescript --project-id \"" + process.env.SUPABASE_PROJECT_ID + "\" --schema \""
+    return exec("npx supabase gen types typescript --project-id \"" + process.env.SUPABASE_PROJECT_ID + "\" --schema \""
      + schemaName + "\" > \"" + generatedSchemasDir + "/" + filename + ".ts\"", {encoding: "UTF-8"});
 }
