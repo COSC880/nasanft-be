@@ -21,7 +21,9 @@ async function preBuild()
 
 function build()
 {
+    console.log("start tsc")
     execSync("tsc --build \"tsconfig." + process.env.NODE_ENV + ".json\"",{encoding: "UTF-8"});
+    console.log("end tsc");
 }
 
 function postBuild()
@@ -32,8 +34,10 @@ function postBuild()
 //STATIC FILES
 async function copyStaticFiles()
 {
+    console.log("copy static files");
     fse.copySync("src/views", "dist/" + process.env.NODE_ENV + "/views", {overwrite: true});
     fse.copySync("src/images", "dist/" + process.env.NODE_ENV + "/images", {overwrite: true});
+    console.log("end copy static files");
 }
 
 //GENERATE TYPES
@@ -46,6 +50,7 @@ async function generateTypes()
         generateType("nft", "Neos")
     ]);
     console.log(output);
+    console.log("types generated...")
 }
 
 function generateType(schemaName, filename)
