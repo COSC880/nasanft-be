@@ -334,7 +334,7 @@ describe("NasaFT", function () {
     
     //Mint Nft
     const id = getRandomInt(Number.MAX_SAFE_INTEGER);
-    const metadata = await getNftMetadata({id: id.toString(), dateUTC: null, name: "test neo", "size_feet": 500, "range_miles": 13000, "velocity_mph": 5000});
+    const metadata = await getNftMetadata({id: id.toString(), dateUTC: Date.now() - 50000, name: "test neo", "size_feet": 500, "range_miles": 13000, "velocity_mph": 5000});
     expect(metadata).toHaveProperty("IpfsHash");
 
     const mintAmount = 30;
@@ -365,7 +365,7 @@ describe("NasaFT", function () {
 
     //Mint again
     const id2 = getRandomInt(Number.MAX_SAFE_INTEGER);
-    const metadata2 = await getNftMetadata({id: id.toString(), dateUTC: null, name: "test neo 2", "size_feet": 500, "range_miles": 13000, "velocity_mph": 5000});
+    const metadata2 = await getNftMetadata({id: id.toString(), dateUTC: Date.now() - 100000, name: "test neo 2", "size_feet": 500, "range_miles": 13000, "velocity_mph": 5000});
     expect(metadata2).toHaveProperty("IpfsHash");
     const mint2Amount = 20;
     const mint2 = await mintTokens(id2, mint2Amount, metadata2?.IpfsHash!);

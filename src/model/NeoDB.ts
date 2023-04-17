@@ -10,7 +10,23 @@ const NEO_DATA_TABLE = "neo_data";
 let CURRENT_NEO: OptionalNEO;
 let CURRENT_NEO_TIMEOUT: NodeJS.Timeout | undefined | null;
 let CURRENT_IMAGE_OF_THE_DAY: any;
-generateNewNeo();
+initCurrentNeo();
+
+async function initCurrentNeo()
+{
+    const now = Date.now();
+    const result = await connection.from(NEO_DATA_TABLE).select("*").filter("dateUTC", "gte", now)
+      .order("dateUTC", {ascending: false}).limit(1).single();
+    if (!result.error && result.data)
+    {
+        CURRENT_NEO = result.data;
+        CURRENT_NEO_TIMEOUT = setTimeout(generateNewNeo, CURRENT_NEO.dateUTC - now);
+    }
+    else
+    {
+        await generateNewNeo();
+    }
+}
 
 export async function generateNewNeo()
 {
@@ -76,6 +92,22 @@ async function endCurrentNeo() {
     {
         console.log("Failed to award nfts:" + convertToError(err).message);
     }
+}
+
+export async function forceEndCurrentNeo()
+{
+    stopSetRandomNeoJob();
+    if (CURRENT_NEO)
+    {
+        //Change Expiration date to now
+        const updateCurrentNeo = await connection.from(NEO_DATA_TABLE).update({dateUTC: Date.now()})
+          .filter("id", "eq", CURRENT_NEO.id);
+        if (updateCurrentNeo.error)
+        {
+            return updateCurrentNeo;
+        }
+    }
+    return await generateNewNeo();
 }
 
 export async function awardWinners(neo: NEO, winners: Winner[]) : Promise<Error | undefined>

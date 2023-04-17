@@ -1,12 +1,11 @@
 import * as validate from '../utils/validate';
 import express from 'express';
-import { generateNewNeo, getCurrentNeo, getImageOfTheDay, getTop10Neos, stopSetRandomNeoJob } from '../model/NeoDB';
+import { forceEndCurrentNeo, generateNewNeo, getCurrentNeo, getImageOfTheDay, getTop10Neos, stopSetRandomNeoJob } from '../model/NeoDB';
 const router = express.Router();
 
 //Force Update Current Neo
 router.put('/', validate.verifyRequest, validate.verifyAdmin, async function (req, res, next) {
-    stopSetRandomNeoJob();
-    const {status, error, data} = await generateNewNeo();
+    const {status, error, data} = await forceEndCurrentNeo();
     res.status(status).json(error ? {text: error.message} : data);
   });
 
