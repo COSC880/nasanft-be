@@ -1,5 +1,5 @@
 import { getConnection } from "./UtilsDb";
-import { Database as QuizzesSchema } from "../schemas/Quizzes";
+import { Database as QuizzesSchema } from "../schemas2/Quizzes";
 import { CronJob } from "cron";
 import { getCurrentNeo, setImageOfTheDay } from "./NeoDB";
 
