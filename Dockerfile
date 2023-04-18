@@ -11,7 +11,7 @@ COPY . /nasanft-be
 ENV NODE_ENV=production
 
 # Install the application dependencies
-RUN npm ci
+RUN npm install
 
 # Build the application
 RUN npm run build
