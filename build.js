@@ -19,7 +19,7 @@ function preBuild()
 
 function build()
 {
-    console.log(execSync("tsc --build \"tsconfig." + process.env.NODE_ENV + ".json\" --extendedDiagnostics",{encoding: "UTF-8"}));
+    execSync("tsc --build \"tsconfig." + process.env.NODE_ENV + ".json\"",{encoding: "UTF-8"});
 }
 
 function postBuild()
@@ -28,7 +28,7 @@ function postBuild()
 }
 
 //STATIC FILES
-function copyStaticFiles()
+async function copyStaticFiles()
 {
     fse.copySync("src/views", "dist/" + process.env.NODE_ENV + "/views", {overwrite: true});
     fse.copySync("src/images", "dist/" + process.env.NODE_ENV + "/images", {overwrite: true});
