@@ -1,5 +1,5 @@
 import { getConnection } from "./UtilsDb";
-import { Database as UsersSchema } from "../schemas/Users";
+import { Database as UsersSchema } from "../schema/Users";
 
 const connection = getConnection<UsersSchema>("users_data");
 const USER_DATA_TABLE = "user_data";

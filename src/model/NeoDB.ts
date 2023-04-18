@@ -1,5 +1,5 @@
 import { getConnection } from "./UtilsDb";
-import { Database as NFTSchema } from "../schemas/Neos";
+import { Database as NFTSchema } from "../schema/Neos";
 import axios from "axios";
 import { convertToError, getNftMetadata, mintTokens, safeTransfer } from "./NftBlockchain";
 import { getCurrentWinners, Winner } from "./QuizzesDb";
