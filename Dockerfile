@@ -8,10 +8,16 @@ WORKDIR /nasanft-be
 COPY . /nasanft-be
 
 # Install the application dependencies
-RUN npm install
+RUN npm ci
+
+# Set build to production
+ENV NODE_ENV=production
+
+# Build the application
+RUN npm run build
 
 # Expose port 3000
 EXPOSE 3000
 
 # Define the entry point for the container
-CMD ["npm", "start"]
+CMD ["npm", "run", "startServer"]
