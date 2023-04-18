@@ -7,11 +7,11 @@ WORKDIR /nasanft-be
 # Copy the application files into the working directory
 COPY . /nasanft-be
 
+# Install the application dependencies
+RUN npm ci
+
 # Set build to production
 ENV NODE_ENV=production
-
-# Install the application dependencies
-RUN npm install
 
 # Build the application
 RUN npm run build
