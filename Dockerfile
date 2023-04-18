@@ -7,6 +7,10 @@ WORKDIR /nasanft-be
 # Copy the application files into the working directory
 COPY . /nasanft-be
 
+ls
+
+ls schemas
+
 # Install the application dependencies
 RUN npm ci
 
