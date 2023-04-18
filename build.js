@@ -14,7 +14,11 @@ function main()
 
 function preBuild()
 {
-    generateTypes();
+    //Dont regenerate types in production for faster build
+    if (process.env.NODE_ENV !== "production")
+    {
+        generateTypes();
+    }
 }
 
 function build()
@@ -37,7 +41,6 @@ async function copyStaticFiles()
 //GENERATE TYPES
 function generateTypes()
 {
-    fse.mkdirpSync(generatedSchemasDir, {recursive: true});
     generateType("users_data", "Users");    
     generateType("quiz_information", "Quizzes");
     generateType("nft", "Neos");

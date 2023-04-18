@@ -7,11 +7,17 @@ WORKDIR /nasanft-be
 # Copy the application files into the working directory
 COPY . /nasanft-be
 
+# Set build to production
+ENV NODE_ENV=production
+
 # Install the application dependencies
-RUN npm install
+RUN npm ci
+
+# Build the application
+RUN npm run build
 
 # Expose port 3000
 EXPOSE 3000
 
 # Define the entry point for the container
-CMD ["npm", "start"]
+CMD ["npm", "run", "startServer"]
