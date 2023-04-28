@@ -37,13 +37,25 @@ router.get('/:public_address', validate.verifyRequest, validate.verifyAdmin, asy
 });
 
 //Update User
-router.put('/', validate.verifyRequest, validate.verifyPostParams(["public_address", "user"]), async function (req, res, next) {
+router.put('/', validate.verifyRequest, validate.verifyPostParams(["user"]), async function (req, res, next) {
+  const {error, data, status} = await UsersDb.updateUser(res.locals.public_address, req.body.user);
+  res.status(status).json(error ? {text: error.message} : data);
+});
+
+//Update Other User
+router.put('/other/', validate.verifyRequest, validate.verifyAdmin, validate.verifyPostParams(["public_address", "user"]), async function (req, res, next) {
   const {error, data, status} = await UsersDb.updateUser(req.body.public_address, req.body.user);
   res.status(status).json(error ? {text: error.message} : data);
 });
 
 //Delete User
-router.delete('/', validate.verifyRequest, validate.verifyPostParams(["public_address"]), async function (req, res, next) {
+router.delete('/', validate.verifyRequest, async function (req, res, next) {
+  const {error, status, statusText} = await UsersDb.deleteUser(res.locals.public_address);
+  res.status(status).json({text: error ? error.message : statusText});
+});
+
+//Delete Other User
+router.delete('/other/', validate.verifyRequest, validate.verifyAdmin, validate.verifyPostParams(["public_address"]), async function (req, res, next) {
   const {error, status, statusText} = await UsersDb.deleteUser(req.body.public_address);
   res.status(status).json({text: error ? error.message : statusText});
 });
