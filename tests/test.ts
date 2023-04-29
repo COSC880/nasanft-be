@@ -102,16 +102,41 @@ describe("NasaFT", function () {
     await request(app).post("/api/users/").send({public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"})
       .expect(400);
   });
-  it("Should be able to update user", async () => {
-    const authenication = getUserAccessToken();
+  it("Should be able to update own user", async () => {
+    const authenication = createAccessToken("0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd");
     const user_name = "MajorTom";
-    const public_address = "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
 
     const user: UpdateUser = {
       user_name: user_name
     };
     
-    const res = await request(app).put("/api/users/").send({user: user, public_address: public_address})
+    const res = await request(app).put("/api/users/").send({user: user})
+      .set(AUTH_HEADER, authenication!);
+    expect(res.body.user_name).toEqual(user_name);
+  });
+  it("Shouldn't be able to update other user", async () => {
+    const authenication = createAccessToken("0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd");
+    const user_name = "CommanderShepard";
+    const public_address = testSigner.address;
+
+    const user: UpdateUser = {
+      user_name: user_name
+    };
+    
+    const res = await request(app).put("/api/users/other/").send({public_address: public_address, user: user})
+      .set(AUTH_HEADER, authenication!);
+    expect(res.status).toEqual(403);
+  });
+  it("Admin Should be able to update other user", async () => {
+    const authenication = getAdminAccessToken();
+    const user_name = "CommanderShepard";
+    const public_address = "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
+
+    const user: UpdateUser = {
+      user_name: user_name,
+    };
+    
+    const res = await request(app).put("/api/users/other/").send({public_address: public_address, user: user})
       .set(AUTH_HEADER, authenication!);
     expect(res.body.user_name).toEqual(user_name);
   });
@@ -125,13 +150,34 @@ describe("NasaFT", function () {
     expect(adminRes.status).toEqual(200);
     expect(adminRes.body).toHaveProperty('overall_rank');
   });
-  it("Should be able to delete user", async () => {
-    const authenication = getUserAccessToken();
+  it("Should be able to own delete user", async () => {
+    const authenication = createAccessToken("0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd");
+    const res = await request(app).delete("/api/users/")
+      .set(AUTH_HEADER, authenication!);
+    expect(res.status).toEqual(204);
+  });
+  it("Shouldn't be able to other delete user", async () => {
+    const authenication = createAccessToken("0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd");
     const user: UpdateUser = {
+      public_address: testSigner.address
+    };
+    
+    const res = await request(app).delete("/api/users/other/").send(user)
+      .set(AUTH_HEADER, authenication!);
+    expect(res.status).toEqual(403);
+  });
+  it("Admin Should be able to other delete user", async () => {
+    const user: InsertUser = {
+      user_name: "SpaceXCellAnt",
       public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"
     };
     
-    const res = await request(app).delete("/api/users/").send(user)
+    await request(app).post("/api/users/").send({user: user})
+      .expect(201);
+
+    const authenication = getAdminAccessToken();
+    
+    const res = await request(app).delete("/api/users/other/").send(user)
       .set(AUTH_HEADER, authenication!);
     expect(res.status).toEqual(204);
   });
