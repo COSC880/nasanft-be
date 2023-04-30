@@ -16,11 +16,10 @@ const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
 const testSigner = new Wallet(process.env.TEST_WALLET_PRIVATE_KEY!, alchemy);
 const owner = new Wallet(process.env.CONTRACT_OWNER_PRIVATE_KEY!, alchemy);
-const nullAddress =  "0x0000000000000000000000000000000000000000"
 
 describe("NasaFT", function () {
   it("Should be able to get unique nonce.", async () => {
-    const public_address = "0x0000000000000000000000000000000000011111";
+    const public_address = testSigner.address;
     const nonce1 = await request(app).get("/api/token/" + public_address);
     expect(nonce1.status).toEqual(200);
     expect(nonce1.body).toHaveProperty("nonce");
@@ -141,7 +140,7 @@ describe("NasaFT", function () {
     expect(res.body.user_name).toEqual(user_name);
   });
   it("Should be able to get another user.", async () => {
-    const otherPublicAddress = "0x0000000000000000000000000000000000000000"
+    const otherPublicAddress = testSigner.address;
     const nonAdminLogin = getUserAccessToken();
     const nonAdminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, nonAdminLogin!);
     expect(nonAdminRes.status).toEqual(200);
@@ -165,7 +164,7 @@ describe("NasaFT", function () {
   });
   it("Admin Should be able to other delete user", async () => {
     const user: InsertUser = {
-      user_name: "SpaceXCellAnt",
+      user_name: "CommanderShepard",
       public_address: "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd"
     };
     
@@ -497,7 +496,7 @@ function getUserAccessToken()
 function getAdminAccessToken()
 {
   //Fake Login For Testing
-  return createAccessToken("0x0000000000000000000000000000000000011111");
+  return createAccessToken(owner.address);
 }
 
 async function saveImage(path: string, buffer: Buffer | undefined)
