@@ -11,6 +11,7 @@ export interface Database {
     Tables: {
       user_data: {
         Row: {
+          current_Neo_Timestamp: number | null
           current_quiz_rank: number | null
           current_quiz_score: number | null
           current_score: number
@@ -27,6 +28,7 @@ export interface Database {
           winner: boolean | null
         }
         Insert: {
+          current_Neo_Timestamp?: number | null
           current_quiz_rank?: number | null
           current_quiz_score?: number | null
           current_score?: number
@@ -43,6 +45,7 @@ export interface Database {
           winner?: boolean | null
         }
         Update: {
+          current_Neo_Timestamp?: number | null
           current_quiz_rank?: number | null
           current_quiz_score?: number | null
           current_score?: number
