@@ -31,7 +31,7 @@ router.get('/', validate.verifyRequest, async function (req, res, next) {
 });
 
 //Get Other User
-router.get('/:public_address', validate.verifyRequest, validate.verifyAdmin, async function (req, res, next) {
+router.get('/:public_address', validate.verifyRequest, async function (req, res, next) {
   const {error, data, status} = await UsersDb.getUser(req.params.public_address);
   res.status(status).json(error ? {text: error.message} : data);
 });

@@ -127,7 +127,7 @@ describe("NasaFT", function () {
       .set(AUTH_HEADER, authenication!);
     expect(res.status).toEqual(403);
   });
-  it("Admin Should be able to update other user", async () => {
+  it("Admin should be able to update other user", async () => {
     const authenication = getAdminAccessToken();
     const user_name = "CommanderShepard";
     const public_address = "0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
@@ -140,15 +140,12 @@ describe("NasaFT", function () {
       .set(AUTH_HEADER, authenication!);
     expect(res.body.user_name).toEqual(user_name);
   });
-  it("Should only be able to get another user if admin.", async () => {
+  it("Should be able to get another user.", async () => {
     const otherPublicAddress = "0x0000000000000000000000000000000000000000"
     const nonAdminLogin = getUserAccessToken();
-    const adminLogin = getAdminAccessToken();
     const nonAdminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, nonAdminLogin!);
-    const adminRes = await request(app).get("/api/users/" + otherPublicAddress).set(AUTH_HEADER, adminLogin!);
-    expect(nonAdminRes.status).toEqual(403);
-    expect(adminRes.status).toEqual(200);
-    expect(adminRes.body).toHaveProperty('overall_rank');
+    expect(nonAdminRes.status).toEqual(200);
+    expect(nonAdminRes.body).toHaveProperty('overall_rank');
   });
   it("Should be able to own delete user", async () => {
     const authenication = createAccessToken("0xaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd");
