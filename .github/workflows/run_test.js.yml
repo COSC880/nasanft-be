@@ -7,6 +7,10 @@ on:
         required: true
         type: string
     secrets:
+      JWT_SECRET:
+        required: true
+      JWT_REFRESH_SECRET:
+        required: true
       SUPABASE_ACCESS_TOKEN:
         required: true
       SUPABASE_API_KEY:
@@ -27,7 +31,8 @@ on:
 env:
   NODE_ENV: development
   PORT: 3000
-  JWT_SECRET: ${{ secrets.GITHUB_TOKEN }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
   SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
   SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
   SUPABASE_PROJECT_ID: "egaldiqizaelreydwdfc"

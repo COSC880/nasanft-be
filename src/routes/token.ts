@@ -4,7 +4,7 @@ import { generateNonce, verifyNonce } from "../model/NftBlockchain";
 import { updateUser } from "../model/UsersDb";
 const router = express.Router();
 
-router.post('/refresh', validate.verifyRequest, function (req, res) {
+router.post('/refresh', validate.verifyRefresh, function (req, res) {
   const accessToken = validate.createAccessToken(res.locals.public_address);
   return res.json({ accessToken: accessToken ? accessToken : null });
 });

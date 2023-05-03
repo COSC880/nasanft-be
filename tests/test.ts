@@ -6,7 +6,7 @@ import path from "path";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
-import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../src/model/QuizzesDb";
+import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners, removeWinner } from "../src/model/QuizzesDb";
 import { createAccessToken } from "../src/utils/validate";
 import { Alchemy, Network, Nft, OwnedNft, Wallet } from "alchemy-sdk";
 import { burnTokens, getNftMetadata, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
@@ -68,6 +68,9 @@ describe("NasaFT", function () {
     //Wait to ensure we get a new access token as if we are in the same second as the old token we will get the same token
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    //Test we cant use refresh token as an access token
+    const refreshAsAccessRes = await request(app).get("/api/users/").set(AUTH_HEADER, loginRes.body.refreshToken);
+    expect(refreshAsAccessRes.status).toEqual(401);
     //Test we get a new access token when we refresh
     const refreshRes = await request(app).post("/api/token/refresh").set(AUTH_HEADER, loginRes.body.refreshToken);
     expect(refreshRes.body).toHaveProperty('accessToken');
@@ -222,6 +225,10 @@ describe("NasaFT", function () {
     const getBalanceAfterData = getBalanceAfter.body;
     expect(getBalanceAfterData).toHaveProperty("balance", 0);
 
+    //Remove test signer from winners table to make sure test doesnt produce a false pass due to a past test
+    const removeRes = await removeWinner(testSigner.address);
+    expect(removeRes.status).toEqual(204);
+
     //Add Winner
     const winnerRes = await request(app).post("/api/quizzes").send({public_address: public_address})
       .set(AUTH_HEADER, authenication!)
@@ -234,7 +241,7 @@ describe("NasaFT", function () {
 
     const winners = await getCurrentWinners();
     expect(winners.data);
-    expect(winners.data?.length).toEqual(1);
+    expect(winners.data?.filter(winner => winner.public_address === public_address).length).toEqual(1);
 
     //Force quiz refresh
     const adminAuthentication = getAdminAccessToken();
