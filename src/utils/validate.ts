@@ -6,28 +6,19 @@ const accessTokenExpiresIn = "30m";
 const refreshTokenExpiresIn = "200d";
 
 export function createAccessToken(public_address: String) : string | undefined {
-  return createToken(public_address, accessTokenExpiresIn);
+  return createToken(public_address, accessTokenExpiresIn, process.env.JWT_SECRET!);
 }
 
 export function createRefreshToken(public_address: String) : string | undefined {
-  return createToken(public_address, refreshTokenExpiresIn);
+  return createToken(public_address, refreshTokenExpiresIn, process.env.JWT_REFRESH_SECRET!);
 }
 
 export async function verifyRequest(req: Request, res: Response, next: NextFunction) {
-  try {
-    var token = getToken(req)!;
-    const tokenRes = jwt.verify(token, process.env.JWT_SECRET!);
-    const public_address = (tokenRes as JwtPayload).public_address; 
-    if (public_address)  {
-      res.locals.public_address = public_address;
-      next();
-    } else {
-      throw new Error("Invalid decoded token");
-    }
-  } catch (err) {
-    const message = (err as Error).message ? (<Error>err).message : String(err);
-    res.status(401).json({text: message});
-  }
+  verifyToken(req, res, next, process.env.JWT_SECRET!)
+}
+
+export async function verifyRefresh(req: Request, res: Response, next: NextFunction) {
+  verifyToken(req, res, next, process.env.JWT_REFRESH_SECRET!)
 }
 
 export async function verifyAdmin(req: Request, res: Response, next: NextFunction) {
@@ -68,9 +59,9 @@ export function verifyPostParams(requiredParams: string[])
   };
 }
 
-function createToken(public_address: String, expiresIn: string) : string | undefined {
+function createToken(public_address: String, expiresIn: string, secret: string) : string | undefined {
   try {
-    return "Bearer " + jwt.sign({ public_address: public_address }, process.env.JWT_SECRET!, {
+    return "Bearer " + jwt.sign({ public_address: public_address }, secret, {
       expiresIn: expiresIn,
     });
   } catch (err) {
@@ -86,4 +77,21 @@ function getToken(req: Request) : string | undefined {
     return token;
   }
   throw new Error("Invalid Token Provided");
+}
+
+function verifyToken(req: Request, res: Response, next: NextFunction, secret: string) {
+  try {
+    var token = getToken(req)!;
+    const tokenRes = jwt.verify(token, secret);
+    const public_address = (tokenRes as JwtPayload).public_address; 
+    if (public_address)  {
+      res.locals.public_address = public_address;
+      next();
+    } else {
+      throw new Error("Invalid decoded token");
+    }
+  } catch (err) {
+    const message = (err as Error).message ? (<Error>err).message : String(err);
+    res.status(401).json({text: message});
+  }
 }

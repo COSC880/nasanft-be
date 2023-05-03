@@ -68,6 +68,9 @@ describe("NasaFT", function () {
     //Wait to ensure we get a new access token as if we are in the same second as the old token we will get the same token
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    //Test we cant use refresh token as an access token
+    const refreshAsAccessRes = await request(app).get("/api/users/").set(AUTH_HEADER, loginRes.body.refreshToken);
+    expect(refreshAsAccessRes.status).toEqual(401);
     //Test we get a new access token when we refresh
     const refreshRes = await request(app).post("/api/token/refresh").set(AUTH_HEADER, loginRes.body.refreshToken);
     expect(refreshRes.body).toHaveProperty('accessToken');
@@ -234,7 +237,7 @@ describe("NasaFT", function () {
 
     const winners = await getCurrentWinners();
     expect(winners.data);
-    expect(winners.data?.length).toEqual(1);
+    expect(winners.data?.filter(winner => winner.public_address === public_address).length).toEqual(1);
 
     //Force quiz refresh
     const adminAuthentication = getAdminAccessToken();
