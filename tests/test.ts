@@ -6,7 +6,7 @@ import path from "path";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import { InsertUser, UpdateUser } from "../src/model/UsersDb";
-import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners } from "../src/model/QuizzesDb";
+import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners, removeWinner } from "../src/model/QuizzesDb";
 import { createAccessToken } from "../src/utils/validate";
 import { Alchemy, Network, Nft, OwnedNft, Wallet } from "alchemy-sdk";
 import { burnTokens, getNftMetadata, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
@@ -224,6 +224,10 @@ describe("NasaFT", function () {
 
     const getBalanceAfterData = getBalanceAfter.body;
     expect(getBalanceAfterData).toHaveProperty("balance", 0);
+
+    //Remove test signer from winners table to make sure test doesnt produce a false pass due to a past test
+    const removeRes = await removeWinner(testSigner.address);
+    expect(removeRes.status).toEqual(204);
 
     //Add Winner
     const winnerRes = await request(app).post("/api/quizzes").send({public_address: public_address})

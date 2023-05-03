@@ -56,6 +56,12 @@ export async function setWinner(public_address: string)
   return await connection.from(WINNERS).upsert({ neo_id: currentNeo?.id!, public_address: public_address }, { onConflict: "neo_id, public_address" });
 }
 
+export async function removeWinner(public_address: string)
+{
+  const currentNeo = getCurrentNeo();
+  return await connection.from(WINNERS).delete().filter("public_address", "eq", public_address).filter("neo_id", "eq", currentNeo);
+}
+
 export type Answer = undefined | null | QuizzesSchema["quiz_information"]["Tables"]["quiz_answers"]["Row"];
 export type Question = undefined | null | QuizzesSchema["quiz_information"]["Tables"]["quiz_questions"]["Row"] & {answers: Answer[]}
 export type Quiz = undefined | null | QuizzesSchema["quiz_information"]["Tables"]["quiz_questions"]["Row"] & {questions: Question[]}
