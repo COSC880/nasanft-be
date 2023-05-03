@@ -23,6 +23,8 @@ jobs:
       NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
       PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
       PINATA_API_SECRET: ${{ secrets.PINATA_API_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
 
   node_18:
     needs: node_16
@@ -38,3 +40,5 @@ jobs:
       NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
       PINATA_API_KEY: ${{ secrets.PINATA_API_KEY }}
       PINATA_API_SECRET: ${{ secrets.PINATA_API_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
