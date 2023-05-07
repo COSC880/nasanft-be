@@ -1,6 +1,6 @@
 import {CanvasRenderingContext2D, createCanvas, loadImage} from "canvas";
 import path from "path";
-import { NEO } from "../model/NeoDB";
+import { NEO } from "../model/NeoDb";
 
 //Image Constants
 const IMAGES_DIR = path.join(__dirname, "..", "images");

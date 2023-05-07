@@ -1,6 +1,6 @@
 import * as validate from '../utils/validate';
 import express from 'express';
-import { forceEndCurrentNeo, generateNewNeo, getCurrentNeo, getImageOfTheDay, getTop10Neos, stopSetRandomNeoJob } from '../model/NeoDB';
+import { forceEndCurrentNeo, generateNewNeo, getCurrentNeo, getImageOfTheDay, getTop10Neos, stopSetRandomNeoJob } from '../model/NeoDb';
 const router = express.Router();
 
 //Force Update Current Neo
