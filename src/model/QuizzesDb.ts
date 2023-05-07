@@ -1,7 +1,7 @@
 import { getConnection } from "./UtilsDb";
 import { Database as QuizzesSchema } from "../schemas/Quizzes";
 import { CronJob } from "cron";
-import { getCurrentNeo, setImageOfTheDay } from "./NeoDB";
+import { getCurrentNeo, setImageOfTheDay } from "./NeoDb";
 
 const connection = getConnection<QuizzesSchema>("quiz_information");
 const QUIZZES_TABLE = "quizzes"

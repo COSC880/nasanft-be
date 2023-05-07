@@ -10,7 +10,7 @@ import { Question, Answer, stopSetRandomQuizJob, getCurrentWinners, removeWinner
 import { createAccessToken } from "../src/utils/validate";
 import { Alchemy, Network, Nft, OwnedNft, Wallet } from "alchemy-sdk";
 import { burnTokens, getNftMetadata, mintTokens, safeBatchTransfer, safeTransfer } from "../src/model/NftBlockchain";
-import { setImageOfTheDay, stopSetRandomNeoJob } from "../src/model/NeoDB";
+import { setImageOfTheDay, stopSetRandomNeoJob } from "../src/model/NeoDb";
 import PinataClient from "@pinata/sdk";
 const AUTH_HEADER = "x-auth-token";
 const alchemy = new Alchemy({apiKey: process.env.ALCHEMY_API_KEY, network: process.env.ALCHEMY_NETWORK as Network});
@@ -180,7 +180,7 @@ describe("NasaFT", function () {
       .set(AUTH_HEADER, authenication!);
     expect(res.status).toEqual(204);
   });
-  it("Should be able to get a random quiz", async () => {
+  it("Should be able to get a random quiz and admin should be able to award NFTs", async () => {
     const authenication = getUserAccessToken();
     
     const res = await request(app).get("/api/quizzes/")
@@ -486,10 +486,12 @@ describe("NasaFT", function () {
     const iotdRes = await request(app).get("/api/neo/iotd");
     expect(iotdRes.status).toEqual(200);
     expect(iotdRes.body).toHaveProperty("url");
+    expect(iotdRes.body).not.toHaveProperty("copyright");
     await setImageOfTheDay();
     const iotdRes2 = await request(app).get("/api/neo/iotd");
     expect(iotdRes.status).toEqual(200);
     expect(iotdRes.body).toHaveProperty("url");
+    expect(iotdRes.body).not.toHaveProperty("copyright");
     expect(iotdRes2.body.url).not.toEqual(iotdRes.body.url);
   });
 });

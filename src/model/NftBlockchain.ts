@@ -3,7 +3,7 @@ import {abi} from "./NasaFT.json";
 import { getUser, updateUser } from "./UsersDb";
 import { verifyMessage } from "@ethersproject/wallet";
 import { randomUUID } from "crypto";
-import { NEO } from "./NeoDB";
+import { NEO } from "./NeoDb";
 import PinataClient, { PinataPinResponse } from "@pinata/sdk";
 import { Attributes, getAttributes, generateImageFromAttributes } from "../utils/attributes";
 import { Readable } from "stream";
